@@ -1,6 +1,12 @@
 {
   "routes": [
     {
+      "route": "/api/*",
+      "allowedRoles": [
+        "watchkeeper_user"
+      ]
+    },
+    {
       "route": "/login",
       "redirect": "/.auth/login/aad"
     },
@@ -10,7 +16,9 @@
     },
     {
       "route": "/*",
-      "allowedRoles": ["watchkeeper_user"]
+      "allowedRoles": [
+        "watchkeeper_user"
+      ]
     }
   ],
   "responseOverrides": {
@@ -24,5 +32,8 @@
     "exclude": [
       "/assets/*.{png,jpg,jpeg,gif,svg,css,js,ico}"
     ]
+  },
+  "platform": {
+    "apiRuntime": "node:22"
   }
 }
