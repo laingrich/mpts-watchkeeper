@@ -1,0 +1,45 @@
+[
+  {
+    "id": "saltmarsh",
+    "name": "Saltmarsh House",
+    "type": "Residential",
+    "status": "Online",
+    "devices": [
+      {
+        "name": "XP-8v Processor",
+        "group": "Management",
+        "url": "http://192.168.2.10"
+      },
+      {
+        "name": "GUDE AV #1",
+        "group": "Power",
+        "url": "http://192.168.2.50"
+      },
+      {
+        "name": "GUDE AV #2",
+        "group": "Power",
+        "url": "http://192.168.2.51"
+      },
+      {
+        "name": "Cinema ISR-4",
+        "group": "Cinema",
+        "url": "http://192.168.2.26"
+      },
+      {
+        "name": "Netvio Matrix",
+        "group": "AV Distribution",
+        "url": "http://192.168.2.27"
+      },
+      {
+        "name": "AD-1616 #2",
+        "group": "AV Distribution",
+        "url": "http://192.168.2.17"
+      },
+      {
+        "name": "AD-1616 #3",
+        "group": "AV Distribution",
+        "url": "http://192.168.2.18"
+      }
+    ]
+  }
+]
