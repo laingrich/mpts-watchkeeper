@@ -5,14 +5,15 @@ app.http('health', {
   authLevel: 'anonymous',
   route: 'health',
 
-  handler: async () => {
-    return {
-      status: 200,
-      jsonBody: {
-        status: 'ok',
-        service: 'watchkeeper-api',
-        timestamp: new Date().toISOString()
-      }
-    }
-  }
+  handler: async () => ({
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      status: 'ok',
+      service: 'watchkeeper-api',
+      timestamp: new Date().toISOString()
+    })
+  })
 })
