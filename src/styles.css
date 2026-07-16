@@ -222,3 +222,91 @@ main {
     min-width: 110px;
   }
 }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.user-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-identity > div {
+  display: flex;
+  flex-direction: column;
+  max-width: 220px;
+}
+
+.user-identity strong {
+  overflow: hidden;
+  color: #e5e7eb;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-label {
+  color: #60a5fa;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.user-avatar {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.sign-out-button {
+  padding: 8px 10px;
+  border-radius: 9px;
+  color: #cbd5e1;
+  font-size: 0.76rem;
+  text-decoration: none;
+}
+
+.sign-out-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+@media (max-width: 850px) {
+  .user-identity > div {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .header-actions {
+    gap: 8px;
+  }
+
+  .user-menu {
+    padding: 7px;
+  }
+
+  .sign-out-button {
+    display: none;
+  }
+}

@@ -1,5 +1,6 @@
 import sites from './data/sites.json'
 import { useMemo, useState } from 'react'
+import UserMenu from './UserMenu'
 
 type Device = {
   name: string
@@ -56,7 +57,8 @@ export default function App() {
           <h1>Watchkeeper</h1>
         </div>
 
-        <div className="site-selector">
+        <div className="header-actions">
+          <div className="site-selector">
           <span
             className={`status-dot ${
               site.status !== 'Online' ? 'status-dot-pending' : ''
@@ -74,6 +76,9 @@ export default function App() {
               </option>
             ))}
           </select>
+          </div>
+
+          <UserMenu />
         </div>
       </header>
 
