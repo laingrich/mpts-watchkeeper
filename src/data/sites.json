@@ -41,5 +41,12 @@
         "url": "http://192.168.2.18"
       }
     ]
+  },
+  {
+    "id": "my-naia",
+    "name": "MY Naia",
+    "type": "Marine",
+    "status": "Setup Required",
+    "devices": []
   }
 ]

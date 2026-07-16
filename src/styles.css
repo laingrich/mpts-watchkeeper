@@ -187,3 +187,38 @@ main {
   .grid.three { grid-template-columns: 1fr; }
   .site-chip { display: none; }
 }
+
+.site-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.site-selector select {
+  min-width: 160px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e5e7eb;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.site-selector option {
+  color: #111827;
+}
+
+.status-dot-pending {
+  background: #f59e0b;
+  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.12);
+}
+
+@media (max-width: 600px) {
+  .site-selector select {
+    min-width: 110px;
+  }
+}
