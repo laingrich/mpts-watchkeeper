@@ -52,7 +52,7 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <div className="eyebrow">MP TECHNICAL SERVICES</div>
+          <div className="eyebrow">MP TECHNICAL SERVICES · WATCHKEEPER</div>
           <h1>Watchkeeper</h1>
         </div>
 
