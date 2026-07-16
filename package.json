@@ -2,18 +2,25 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:full": "concurrently --kill-others --names WEB,API,SWA \"npm run dev:web\" \"npm run dev:api\" \"npm run dev:swa\"",
+    "dev:web": "vite --host 127.0.0.1",
+    "dev:api": "cd api && func host start --port 7071",
+    "dev:swa": "wait-on http://127.0.0.1:5173 http-get://127.0.0.1:7071/api/health && swa start http://127.0.0.1:5173 --api-devserver-url http://127.0.0.1:7071 --swa-config-location public"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.8",
-    "typescript": "^5.6.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
   },
   "devDependencies": {
+    "@azure/static-web-apps-cli": "^2.0.9",
     "@types/react": "^18.3.10",
-    "@types/react-dom": "^18.3.0"
+    "@types/react-dom": "^18.3.0",
+    "concurrently": "^10.0.3",
+    "wait-on": "^9.0.10"
   },
   "allowScripts": {
     "esbuild@0.21.5": true
