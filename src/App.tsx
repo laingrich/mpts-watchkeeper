@@ -20,7 +20,7 @@ type SitesResponse = {
   count: number
 }
 
-const tabs = ['Overview', 'Devices', 'Documents', 'Issues', 'Admin'] as const
+const tabs = ['Overview', 'Devices', 'Documents', 'Issues', 'Access'] as const
 type Tab = (typeof tabs)[number]
 
 export default function App() {
@@ -112,7 +112,7 @@ export default function App() {
 
   const visibleTabs = isAdmin
     ? tabs
-    : tabs.filter(item => item !== 'Admin')
+    : tabs.filter(item => item !== 'Access')
 
   if (isLoading) {
     return (
@@ -355,24 +355,14 @@ export default function App() {
           </section>
         )}
 
-        {tab === 'Admin' && isAdmin && (
-          <section className="grid two">
-            <article className="panel">
-              <p className="eyebrow">SITE MANAGEMENT</p>
-              <h3>Sites and devices</h3>
-              <p>
-                Add, edit and organise Watchkeeper sites and devices.
-                Persistent editing will be added next.
-              </p>
-            </article>
-
-            <article className="panel">
-              <p className="eyebrow">ACCESS MANAGEMENT</p>
-              <h3>Users and roles</h3>
-              <p>
-                Manage administrator and engineer access to Watchkeeper.
-              </p>
-            </article>
+        {tab === 'Access' && isAdmin && (
+          <section className="panel empty-state">
+            <p className="eyebrow">ACCESS MANAGEMENT</p>
+            <h3>Users and roles</h3>
+            <p>
+              Manage administrator and engineer access to Watchkeeper.
+              Clients and sites are managed through Jetbuilt.
+            </p>
           </section>
         )}
       </main>
