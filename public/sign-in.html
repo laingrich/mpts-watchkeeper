@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+
+  <meta name="theme-color" content="#0b1120" />
+
+  <title>Sign in | MPTS Watchkeeper</title>
+
+  <style>
+    :root {
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      color: #e5e7eb;
+      background: #0b1120;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      grid-template-columns:
+        minmax(0, 1.1fr)
+        minmax(360px, 0.9fr);
+
+      background:
+        radial-gradient(
+          circle at 12% 15%,
+          rgba(37, 99, 235, 0.23),
+          transparent 33%
+        ),
+        radial-gradient(
+          circle at 85% 85%,
+          rgba(14, 165, 233, 0.12),
+          transparent 30%
+        ),
+        #0b1120;
+    }
+
+    .brand-panel {
+      padding: clamp(40px, 8vw, 110px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #2563eb, #0284c7);
+      box-shadow: 0 16px 40px rgba(37, 99, 235, 0.28);
+      font-weight: 900;
+      letter-spacing: -0.05em;
+    }
+
+    .brand-name {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name strong {
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    .brand-name span {
+      margin-top: 3px;
+      color: #93c5fd;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+    }
+
+    .intro {
+      max-width: 660px;
+      margin: 80px 0;
+    }
+
+    .eyebrow {
+      margin-bottom: 14px;
+      color: #60a5fa;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 7vw, 6.4rem);
+      line-height: 0.94;
+      letter-spacing: -0.06em;
+    }
+
+    .intro p {
+      max-width: 560px;
+      margin: 28px 0 0;
+      color: #9ca3af;
+      font-size: clamp(1rem, 1.8vw, 1.18rem);
+      line-height: 1.75;
+    }
+
+    .brand-footer {
+      color: #6b7280;
+      font-size: 0.78rem;
+    }
+
+    .login-panel {
+      padding: clamp(30px, 7vw, 90px);
+      display: grid;
+      align-items: center;
+    }
+
+    .login-card {
+      width: min(440px, 100%);
+      margin: 0 auto;
+      padding: clamp(28px, 5vw, 44px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      background: rgba(17, 24, 39, 0.78);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(18px);
+    }
+
+    .security-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 30px;
+      color: #86efac;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .security-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: -0.035em;
+    }
+
+    .login-card > p {
+      margin: 14px 0 30px;
+      color: #9ca3af;
+      line-height: 1.65;
+    }
+
+    .microsoft-button {
+      width: 100%;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 13px;
+      background: #f9fafb;
+      color: #111827;
+      font-weight: 750;
+      text-decoration: none;
+      transition:
+        transform 150ms ease,
+        box-shadow 150ms ease,
+        background 150ms ease;
+    }
+
+    .microsoft-button:hover {
+      transform: translateY(-1px);
+      background: white;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.24);
+    }
+
+    .microsoft-logo {
+      width: 19px;
+      height: 19px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+
+    .microsoft-logo span:nth-child(1) {
+      background: #f25022;
+    }
+
+    .microsoft-logo span:nth-child(2) {
+      background: #7fba00;
+    }
+
+    .microsoft-logo span:nth-child(3) {
+      background: #00a4ef;
+    }
+
+    .microsoft-logo span:nth-child(4) {
+      background: #ffb900;
+    }
+
+    .access-note {
+      margin-top: 26px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      color: #6b7280;
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .access-note strong {
+      color: #9ca3af;
+    }
+
+    @media (max-width: 850px) {
+      body {
+        display: block;
+      }
+
+      .brand-panel {
+        min-height: 42vh;
+        padding: 34px 24px 54px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .intro {
+        margin: 62px 0 0;
+      }
+
+      .brand-footer {
+        display: none;
+      }
+
+      .login-panel {
+        padding: 42px 20px 70px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <section class="brand-panel">
+    <div class="brand">
+      <div class="brand-mark">MP</div>
+
+      <div class="brand-name">
+        <strong>MP Technical Services</strong>
+        <span>WATCHKEEPER</span>
+      </div>
+    </div>
+
+    <div class="intro">
+      <div class="eyebrow">
+        MANAGED TECHNICAL SUPPORT
+      </div>
+
+      <h1>Systems under watch.</h1>
+
+      <p>
+        Secure access to client sites, technical devices,
+        documentation, monitoring and support tools.
+      </p>
+    </div>
+
+    <div class="brand-footer">
+      © MP Technical Services
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <main class="login-card">
+      <div class="security-indicator">
+        <span class="security-dot"></span>
+        SECURE ACCESS
+      </div>
+
+      <h2>Sign in to Watchkeeper</h2>
+
+      <p>
+        Continue using your authorised Microsoft account.
+      </p>
+
+      <a
+        class="microsoft-button"
+        href="/.auth/login/aad?post_login_redirect_uri=%2F"
+      >
+        <span class="microsoft-logo" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+
+        Sign in with Microsoft
+      </a>
+
+      <div class="access-note">
+        <strong>Authorised users only.</strong>
+        Access is limited to approved MPTS administrators and
+        engineers.
+      </div>
+    </main>
+  </section>
+</body>
+</html>
