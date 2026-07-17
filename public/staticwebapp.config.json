@@ -14,7 +14,14 @@
     },
     {
       "route": "/logout",
-      "redirect": "/.auth/logout"
+      "redirect": "/.auth/logout?post_logout_redirect_uri=%2Fsigned-out"
+    },
+    {
+      "route": "/signed-out",
+      "rewrite": "/signed-out.html",
+      "allowedRoles": [
+        "anonymous"
+      ]
     },
     {
       "route": "/*",

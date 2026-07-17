@@ -51,7 +51,7 @@ export default function UserMenu() {
         </div>
       </div>
 
-      <a className="sign-out-button" href="/.auth/logout">
+      <a className="sign-out-button" href="/logout">
         Sign out
       </a>
     </div>
