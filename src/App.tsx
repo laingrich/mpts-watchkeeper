@@ -7,6 +7,8 @@ import {
 import UserMenu, { type ClientPrincipal } from './UserMenu'
 import DeviceLauncher from './components/DeviceLauncher'
 import ClientPicker from './components/ClientPicker'
+import SharePointFolderLink from './components/SharePointFolderLink'
+import SharePointClientLink from './components/SharePointClientLink'
 
 type JetbuiltClient = {
   id: string
@@ -318,13 +320,10 @@ export default function App() {
         )}
 
         {tab === 'Documents' && (
-          <section className="panel empty-state">
-            <h3>Client documentation</h3>
-            <p>
-              This section will connect {client.name} to the
-              appropriate SharePoint documentation.
-            </p>
-          </section>
+          <SharePointClientLink
+            clientId={client.id}
+            clientName={client.name}
+          />
         )}
 
         {tab === 'Issues' && (

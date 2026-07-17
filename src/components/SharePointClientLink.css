@@ -1,0 +1,120 @@
+.sharepoint-client-card {
+  min-height: 250px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+}
+
+.sharepoint-client-copy h3 {
+  margin-bottom: 10px;
+}
+
+.sharepoint-onedrive-note {
+  max-width: 680px;
+  padding: 12px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 11px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.sharepoint-client-meta {
+  display: block;
+  margin-top: 14px;
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.sharepoint-client-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 250px;
+}
+
+.sharepoint-open-button,
+.sharepoint-edit-button,
+.sharepoint-link-editor button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #dbeafe;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-align: center;
+  text-decoration: none;
+}
+
+.sharepoint-open-button {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: white;
+}
+
+.sharepoint-link-editor {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sharepoint-link-editor label {
+  display: grid;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sharepoint-link-editor input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+  font: inherit;
+}
+
+.sharepoint-link-editor > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sharepoint-save-button {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: white !important;
+}
+
+.sharepoint-link-error {
+  grid-column: 1 / -1;
+  padding: 11px 13px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.22);
+  color: #fecaca;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 760px) {
+  .sharepoint-client-card {
+    grid-template-columns: 1fr;
+  }
+
+  .sharepoint-client-actions {
+    min-width: 0;
+  }
+}
