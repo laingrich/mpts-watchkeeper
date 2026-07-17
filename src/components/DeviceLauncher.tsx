@@ -48,6 +48,7 @@ type ConfigResponse = {
 type DeviceLauncherProps = {
   siteId: string
   siteName: string
+  onDeviceCountChange?: (count: number) => void
 }
 
 type DeviceDraft = {
@@ -153,6 +154,7 @@ function DetailTable({ details }: { details: DeviceDetails }) {
 export default function DeviceLauncher({
   siteId: clientId,
   siteName: clientName,
+  onDeviceCountChange,
 }: DeviceLauncherProps) {
   const [config, setConfig] = useState<LauncherConfig | null>(null)
   const [savedConfig, setSavedConfig] = useState<LauncherConfig | null>(null)
@@ -178,6 +180,12 @@ export default function DeviceLauncher({
   useEffect(() => {
     void loadConfig()
   }, [clientId])
+
+  useEffect(() => {
+    if (config) {
+      onDeviceCountChange?.(config.devices.length)
+    }
+  }, [config?.devices.length, onDeviceCountChange])
 
   async function loadConfig() {
     setIsLoading(true)

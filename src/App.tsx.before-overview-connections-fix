@@ -1,11 +1,8 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import UserMenu, { type ClientPrincipal } from './UserMenu'
-import DeviceLauncher from './components/DeviceLauncher'
+import DeviceLauncher, {
+  getLauncherDeviceCount,
+} from './components/DeviceLauncher'
 import ClientPicker from './components/ClientPicker'
 
 type JetbuiltClient = {
@@ -32,7 +29,6 @@ const tabs = [
 ] as const
 
 type Tab = (typeof tabs)[number]
-type VpnStatus = 'connected' | 'disconnected'
 
 export default function App() {
   const [clientList, setClientList] = useState<JetbuiltClient[]>([])
@@ -40,23 +36,14 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('Overview')
   const [currentUser, setCurrentUser] =
     useState<ClientPrincipal | null>(null)
+
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fetchedAt, setFetchedAt] = useState<string | null>(null)
-  const [deviceCounts, setDeviceCounts] =
-    useState<Record<string, number>>({})
 
   useEffect(() => {
     void loadClients()
   }, [])
-
-  useEffect(() => {
-    if (!selectedClientId) {
-      return
-    }
-
-    void loadDeviceCount(selectedClientId)
-  }, [selectedClientId])
 
   async function loadClients(forceRefresh = false) {
     setIsLoading(true)
@@ -103,48 +90,6 @@ export default function App() {
       )
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  async function loadDeviceCount(clientId: string) {
-    try {
-      const response = await fetch(
-        `/api/device-config/${encodeURIComponent(clientId)}`,
-        {
-          headers: {
-            Accept: 'application/json',
-          },
-        },
-      )
-
-      if (response.status === 404) {
-        setDeviceCounts(current => ({
-          ...current,
-          [clientId]: 0,
-        }))
-        return
-      }
-
-      if (!response.ok) {
-        return
-      }
-
-      const data = (await response.json()) as {
-        config?: {
-          devices?: unknown[]
-        }
-      }
-
-      const count = Array.isArray(data.config?.devices)
-        ? data.config.devices.length
-        : 0
-
-      setDeviceCounts(current => ({
-        ...current,
-        [clientId]: count,
-      }))
-    } catch {
-      // Keep the existing displayed count if the request fails.
     }
   }
 
@@ -214,8 +159,11 @@ export default function App() {
     )
   }
 
-  const launcherDeviceCount =
-    deviceCounts[client.id] ?? 0
+  const launcherDeviceCount = getLauncherDeviceCount(
+    client.id,
+    0,
+    client.name,
+  )
 
   return (
     <div className="app-shell">
@@ -246,7 +194,15 @@ export default function App() {
             <p>Technical support and monitoring portal</p>
           </div>
 
-          <ConnectionsCard fetchedAt={fetchedAt} />
+          <div className="status-card">
+            <span className="status-dot status-dot-source" />
+            <strong>Jetbuilt</strong>
+            <small>
+              {fetchedAt
+                ? `Client list synced ${formatDate(fetchedAt)}`
+                : 'Client record connected'}
+            </small>
+          </div>
         </section>
 
         <nav className="tabs" aria-label="Watchkeeper sections">
@@ -279,19 +235,6 @@ export default function App() {
             <button
               className="panel overview-card"
               type="button"
-              onClick={() => setTab('Documents')}
-            >
-              <p className="eyebrow">DOCUMENTS</p>
-              <h3>SharePoint</h3>
-              <p>Document integration placeholder</p>
-              <span className="overview-card-link">
-                View documents →
-              </span>
-            </button>
-
-            <button
-              className="panel overview-card"
-              type="button"
               onClick={() => setTab('Issues')}
             >
               <p className="eyebrow">OPEN ISSUES</p>
@@ -301,6 +244,19 @@ export default function App() {
                 View issues →
               </span>
             </button>
+
+            <button
+              className="panel overview-card"
+              type="button"
+              onClick={() => setTab('Documents')}
+            >
+              <p className="eyebrow">DOCUMENTS</p>
+              <h3>SharePoint</h3>
+              <p>Document integration placeholder</p>
+              <span className="overview-card-link">
+                View documents →
+              </span>
+            </button>
           </section>
         )}
 
@@ -308,12 +264,6 @@ export default function App() {
           <DeviceLauncher
             siteId={client.id}
             siteName={client.name}
-            onDeviceCountChange={count =>
-              setDeviceCounts(current => ({
-                ...current,
-                [client.id]: count,
-              }))
-            }
           />
         )}
 
@@ -352,82 +302,8 @@ export default function App() {
   )
 }
 
-type ConnectionsCardProps = {
-  fetchedAt: string | null
-}
-
-function ConnectionsCard({
-  fetchedAt,
-}: ConnectionsCardProps) {
-  const [vpnStatus, setVpnStatus] =
-    useState<VpnStatus>('disconnected')
-
-  const vpnConnected = vpnStatus === 'connected'
-
-  return (
-    <aside className="hero-connections-card">
-      <div className="hero-connections-heading">
-        <p className="eyebrow">CONNECTIONS</p>
-        <h3>Services and remote access</h3>
-      </div>
-
-      <div className="hero-connection-row">
-        <span className="status-dot" />
-
-        <div className="hero-connection-copy">
-          <strong>Jetbuilt</strong>
-          <small>
-            {fetchedAt
-              ? `Client list synced ${formatDate(fetchedAt)}`
-              : 'Client list connected'}
-          </small>
-        </div>
-
-        <span className="hero-connection-label">
-          Connected
-        </span>
-      </div>
-
-      <div className="hero-connection-row">
-        <span
-          className={
-            vpnConnected
-              ? 'status-dot'
-              : 'status-dot hero-status-dot-muted'
-          }
-        />
-
-        <div className="hero-connection-copy">
-          <strong>Site VPN</strong>
-          <small>
-            {vpnConnected
-              ? 'Secure connection to the client network'
-              : 'Not connected to the client network'}
-          </small>
-        </div>
-
-        <button
-          className="hero-vpn-button"
-          type="button"
-          onClick={() =>
-            setVpnStatus(current =>
-              current === 'connected'
-                ? 'disconnected'
-                : 'connected',
-            )
-          }
-        >
-          {vpnConnected
-            ? 'Disconnect VPN'
-            : 'Connect to site (VPN)'}
-        </button>
-      </div>
-    </aside>
-  )
-}
-
 type PageShellProps = {
-  children: ReactNode
+  children: React.ReactNode
   onUserLoaded: (user: ClientPrincipal | null) => void
 }
 
