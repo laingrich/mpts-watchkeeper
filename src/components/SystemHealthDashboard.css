@@ -1,0 +1,231 @@
+.overview-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.system-health-card {
+  display: grid;
+  gap: 20px;
+}
+
+.system-health-header,
+.system-health-checks-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.system-health-header p,
+.system-health-checks-heading p {
+  margin-bottom: 0;
+}
+
+.system-health-mock-badge {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #fde68a;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.system-health-summary {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 2fr);
+  gap: 14px;
+}
+
+.system-health-overall,
+.system-health-metrics article {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(10, 18, 34, 0.72);
+}
+
+.system-health-overall {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+}
+
+.system-health-overall > div {
+  display: grid;
+  gap: 4px;
+}
+
+.system-health-overall small,
+.system-health-metrics small {
+  color: #94a3b8;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.system-health-overall strong {
+  color: #f8fafc;
+  font-size: 1.05rem;
+}
+
+.system-health-overall span:not(.system-health-status-dot),
+.system-health-metrics span {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.system-health-status-dot {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 7px rgba(245, 158, 11, 0.12);
+}
+
+.system-health-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.system-health-metrics article {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 16px;
+}
+
+.system-health-metrics strong {
+  color: #f8fafc;
+  font-size: 1.25rem;
+}
+
+.system-health-checks {
+  display: grid;
+  gap: 12px;
+}
+
+.system-health-checks-heading h4 {
+  margin: 0 0 5px;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.system-health-checks-heading button {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 9px;
+  background: rgba(37, 99, 235, 0.13);
+  color: #bfdbfe;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.system-health-table {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 13px;
+}
+
+.system-health-table-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) 0.8fr 0.65fr 0.7fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+}
+
+.system-health-table-row:first-child {
+  border-top: 0;
+}
+
+.system-health-table-row.heading {
+  background: rgba(255, 255, 255, 0.035);
+  color: #94a3b8;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.system-health-table-row > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.system-health-table-row strong {
+  color: #e5e7eb;
+}
+
+.system-health-table-row small {
+  color: #64748b;
+  font-size: 0.68rem;
+}
+
+.system-health-pill {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.system-health-pill.healthy {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.system-health-pill.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fde68a;
+}
+
+.system-health-pill.critical {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.system-health-footer {
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 900px) {
+  .system-health-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .system-health-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .system-health-header,
+  .system-health-checks-heading {
+    flex-direction: column;
+  }
+
+  .system-health-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .system-health-table-row.heading {
+    display: none;
+  }
+
+  .system-health-table-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .system-health-table-row > span:first-child {
+    grid-column: 1 / -1;
+  }
+}

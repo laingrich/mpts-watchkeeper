@@ -11,6 +11,10 @@ import SharePointClientLink from './components/SharePointClientLink'
 
 import VpnConnection from './components/VpnConnection'
 
+import SystemHealthDashboard from './components/SystemHealthDashboard'
+import IssueManagement from './components/IssueManagement'
+import ServiceReportForm from './components/ServiceReportForm'
+
 type JetbuiltClient = {
   id: string
   name: string
@@ -31,6 +35,7 @@ const tabs = [
   'Devices',
   'Documents',
   'Issues',
+  'Submit service report',
   'Access',
 ] as const
 
@@ -268,46 +273,54 @@ export default function App() {
         </nav>
 
         {tab === 'Overview' && (
-          <section className="grid three">
-            <button
-              className="panel overview-card"
-              type="button"
-              onClick={() => setTab('Devices')}
-            >
-              <p className="eyebrow">DEVICES</p>
-              <h3>{launcherDeviceCount}</h3>
-              <p>Configured Watchkeeper devices</p>
-              <span className="overview-card-link">
-                View devices →
-              </span>
-            </button>
+          <div className="overview-stack">
+            <section className="grid three">
+              <button
+                className="panel overview-card"
+                type="button"
+                onClick={() => setTab('Devices')}
+              >
+                <p className="eyebrow">DEVICES</p>
+                <h3>{launcherDeviceCount}</h3>
+                <p>Configured Watchkeeper devices</p>
+                <span className="overview-card-link">
+                  View devices →
+                </span>
+              </button>
 
-            <button
-              className="panel overview-card"
-              type="button"
-              onClick={() => setTab('Documents')}
-            >
-              <p className="eyebrow">DOCUMENTS</p>
-              <h3>SharePoint</h3>
-              <p>Document integration placeholder</p>
-              <span className="overview-card-link">
-                View documents →
-              </span>
-            </button>
+              <button
+                className="panel overview-card"
+                type="button"
+                onClick={() => setTab('Documents')}
+              >
+                <p className="eyebrow">DOCUMENTS</p>
+                <h3>SharePoint</h3>
+                <p>Client documents and site information</p>
+                <span className="overview-card-link">
+                  View documents →
+                </span>
+              </button>
 
-            <button
-              className="panel overview-card"
-              type="button"
-              onClick={() => setTab('Issues')}
-            >
-              <p className="eyebrow">OPEN ISSUES</p>
-              <h3>0</h3>
-              <p>Issue integration will be added later</p>
-              <span className="overview-card-link">
-                View issues →
-              </span>
-            </button>
-          </section>
+              <button
+                className="panel overview-card"
+                type="button"
+                onClick={() => setTab('Issues')}
+              >
+                <p className="eyebrow">OPEN ISSUES</p>
+                <h3>0</h3>
+                <p>Mock Jetbuilt issue workflow available</p>
+                <span className="overview-card-link">
+                  View issues →
+                </span>
+              </button>
+            </section>
+
+            <SystemHealthDashboard
+              clientName={client.name}
+              configuredDeviceCount={launcherDeviceCount}
+              onOpenDevices={() => setTab('Devices')}
+            />
+          </div>
         )}
 
         {tab === 'Devices' && (
@@ -331,13 +344,17 @@ export default function App() {
         )}
 
         {tab === 'Issues' && (
-          <section className="panel empty-state">
-            <h3>Issue management</h3>
-            <p>
-              Service cases are deliberately excluded from the current
-              Jetbuilt integration.
-            </p>
-          </section>
+          <IssueManagement
+            clientId={client.id}
+            clientName={client.name}
+          />
+        )}
+
+        {tab === 'Submit service report' && (
+          <ServiceReportForm
+            clientId={client.id}
+            clientName={client.name}
+          />
         )}
 
         {tab === 'Access' && isAdmin && (
