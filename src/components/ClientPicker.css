@@ -1,0 +1,191 @@
+.client-picker {
+  position: relative;
+  min-width: 290px;
+}
+
+.client-picker-trigger {
+  width: 100%;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  cursor: pointer;
+  text-align: left;
+}
+
+.client-picker-trigger:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.client-picker-trigger-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.client-picker-trigger-copy small {
+  color: #60a5fa;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.client-picker-trigger-copy strong {
+  overflow: hidden;
+  font-size: 0.87rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-picker-chevron {
+  color: #94a3b8;
+  font-size: 0.58rem;
+}
+
+.client-picker-menu {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 80;
+  width: min(420px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 17px;
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+}
+
+.client-picker-search {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.client-picker-search input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+  font: inherit;
+}
+
+.client-picker-search input:focus {
+  border-color: #60a5fa;
+}
+
+.client-picker-results {
+  max-height: min(62vh, 520px);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.client-picker-section + .client-picker-section {
+  margin-top: 7px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.client-picker-section h3 {
+  margin: 0;
+  padding: 7px 10px;
+  color: #64748b;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.client-picker-option {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  text-align: left;
+}
+
+.client-picker-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.client-picker-option.selected {
+  background: rgba(37, 99, 235, 0.17);
+  color: white;
+}
+
+.client-picker-option > span:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.client-picker-option strong {
+  overflow: hidden;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-picker-option small {
+  color: #fbbf24;
+  font-size: 0.66rem;
+}
+
+.client-picker-selected {
+  color: #60a5fa;
+  font-weight: 900;
+}
+
+.client-picker-empty {
+  padding: 28px 14px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.client-picker-menu footer {
+  padding: 11px 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: #64748b;
+  font-size: 0.68rem;
+}
+
+@media (max-width: 760px) {
+  .client-picker {
+    min-width: 0;
+  }
+
+  .client-picker-menu {
+    position: fixed;
+    top: 76px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
+.client-picker-option.active {
+  outline: 1px solid rgba(96, 165, 250, 0.72);
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.client-picker-option.active.selected {
+  background: rgba(37, 99, 235, 0.25);
+}
