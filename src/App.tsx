@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import UserMenu, { type ClientPrincipal } from './UserMenu'
 import DeviceLauncher, {
   getLauncherDeviceCount,
@@ -29,6 +34,7 @@ const tabs = [
 ] as const
 
 type Tab = (typeof tabs)[number]
+type VpnStatus = 'connected' | 'disconnected'
 
 export default function App() {
   const [clientList, setClientList] = useState<JetbuiltClient[]>([])
@@ -36,7 +42,6 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('Overview')
   const [currentUser, setCurrentUser] =
     useState<ClientPrincipal | null>(null)
-
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fetchedAt, setFetchedAt] = useState<string | null>(null)
@@ -194,15 +199,7 @@ export default function App() {
             <p>Technical support and monitoring portal</p>
           </div>
 
-          <div className="status-card">
-            <span className="status-dot status-dot-source" />
-            <strong>Jetbuilt</strong>
-            <small>
-              {fetchedAt
-                ? `Client list synced ${formatDate(fetchedAt)}`
-                : 'Client record connected'}
-            </small>
-          </div>
+          <ConnectionsCard fetchedAt={fetchedAt} />
         </section>
 
         <nav className="tabs" aria-label="Watchkeeper sections">
@@ -235,19 +232,6 @@ export default function App() {
             <button
               className="panel overview-card"
               type="button"
-              onClick={() => setTab('Issues')}
-            >
-              <p className="eyebrow">OPEN ISSUES</p>
-              <h3>0</h3>
-              <p>Issue integration will be added later</p>
-              <span className="overview-card-link">
-                View issues →
-              </span>
-            </button>
-
-            <button
-              className="panel overview-card"
-              type="button"
               onClick={() => setTab('Documents')}
             >
               <p className="eyebrow">DOCUMENTS</p>
@@ -255,6 +239,19 @@ export default function App() {
               <p>Document integration placeholder</p>
               <span className="overview-card-link">
                 View documents →
+              </span>
+            </button>
+
+            <button
+              className="panel overview-card"
+              type="button"
+              onClick={() => setTab('Issues')}
+            >
+              <p className="eyebrow">OPEN ISSUES</p>
+              <h3>0</h3>
+              <p>Issue integration will be added later</p>
+              <span className="overview-card-link">
+                View issues →
               </span>
             </button>
           </section>
@@ -302,8 +299,82 @@ export default function App() {
   )
 }
 
+type ConnectionsCardProps = {
+  fetchedAt: string | null
+}
+
+function ConnectionsCard({
+  fetchedAt,
+}: ConnectionsCardProps) {
+  const [vpnStatus, setVpnStatus] =
+    useState<VpnStatus>('disconnected')
+
+  const vpnConnected = vpnStatus === 'connected'
+
+  return (
+    <aside className="hero-connections-card">
+      <div className="hero-connections-heading">
+        <p className="eyebrow">CONNECTIONS</p>
+        <h3>Services and remote access</h3>
+      </div>
+
+      <div className="hero-connection-row">
+        <span className="status-dot" />
+
+        <div className="hero-connection-copy">
+          <strong>Jetbuilt</strong>
+          <small>
+            {fetchedAt
+              ? `Client list synced ${formatDate(fetchedAt)}`
+              : 'Client list connected'}
+          </small>
+        </div>
+
+        <span className="hero-connection-label">
+          Connected
+        </span>
+      </div>
+
+      <div className="hero-connection-row">
+        <span
+          className={
+            vpnConnected
+              ? 'status-dot'
+              : 'status-dot hero-status-dot-muted'
+          }
+        />
+
+        <div className="hero-connection-copy">
+          <strong>Site VPN</strong>
+          <small>
+            {vpnConnected
+              ? 'Secure connection to the client network'
+              : 'Not connected to the client network'}
+          </small>
+        </div>
+
+        <button
+          className="hero-vpn-button"
+          type="button"
+          onClick={() =>
+            setVpnStatus(current =>
+              current === 'connected'
+                ? 'disconnected'
+                : 'connected',
+            )
+          }
+        >
+          {vpnConnected
+            ? 'Disconnect VPN'
+            : 'Connect to site (VPN)'}
+        </button>
+      </div>
+    </aside>
+  )
+}
+
 type PageShellProps = {
-  children: React.ReactNode
+  children: ReactNode
   onUserLoaded: (user: ClientPrincipal | null) => void
 }
 
