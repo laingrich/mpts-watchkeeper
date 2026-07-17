@@ -1,0 +1,51 @@
+.vpn-connection-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.vpn-status-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.vpn-status-label.connected {
+  color: #86efac;
+}
+
+.vpn-status-label.opening,
+.vpn-status-label.checking {
+  color: #fde68a;
+}
+
+.vpn-status-label.helper-unavailable {
+  color: #fca5a5;
+}
+
+.vpn-status-label.unconfigured,
+.vpn-status-label.disconnected {
+  color: #94a3b8;
+}
+
+.vpn-status-dot-checking {
+  background: #f59e0b;
+  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.13);
+}
+
+.vpn-status-dot-error {
+  background: #ef4444;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.13);
+}
+
+.hero-vpn-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+@media (max-width: 560px) {
+  .vpn-connection-actions {
+    grid-column: 2;
+    align-items: flex-start;
+  }
+}

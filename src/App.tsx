@@ -9,6 +9,8 @@ import DeviceLauncher from './components/DeviceLauncher'
 import ClientPicker from './components/ClientPicker'
 import SharePointClientLink from './components/SharePointClientLink'
 
+import VpnConnection from './components/VpnConnection'
+
 type JetbuiltClient = {
   id: string
   name: string
@@ -33,7 +35,6 @@ const tabs = [
 ] as const
 
 type Tab = (typeof tabs)[number]
-type VpnStatus = 'connected' | 'disconnected'
 
 export default function App() {
   const [clientList, setClientList] = useState<JetbuiltClient[]>([])
@@ -247,7 +248,11 @@ export default function App() {
             <p>Technical support and monitoring portal</p>
           </div>
 
-          <ConnectionsCard fetchedAt={fetchedAt} />
+          <ConnectionsCard
+            fetchedAt={fetchedAt}
+            clientId={client.id}
+            clientName={client.name}
+          />
         </section>
 
         <nav className="tabs" aria-label="Watchkeeper sections">
@@ -352,16 +357,15 @@ export default function App() {
 
 type ConnectionsCardProps = {
   fetchedAt: string | null
+  clientId: string
+  clientName: string
 }
 
 function ConnectionsCard({
   fetchedAt,
+  clientId,
+  clientName,
 }: ConnectionsCardProps) {
-  const [vpnStatus, setVpnStatus] =
-    useState<VpnStatus>('disconnected')
-
-  const vpnConnected = vpnStatus === 'connected'
-
   return (
     <aside className="hero-connections-card">
       <div className="hero-connections-heading">
@@ -386,40 +390,10 @@ function ConnectionsCard({
         </span>
       </div>
 
-      <div className="hero-connection-row">
-        <span
-          className={
-            vpnConnected
-              ? 'status-dot'
-              : 'status-dot hero-status-dot-muted'
-          }
-        />
-
-        <div className="hero-connection-copy">
-          <strong>Site VPN</strong>
-          <small>
-            {vpnConnected
-              ? 'Secure connection to the client network'
-              : 'Not connected to the client network'}
-          </small>
-        </div>
-
-        <button
-          className="hero-vpn-button"
-          type="button"
-          onClick={() =>
-            setVpnStatus(current =>
-              current === 'connected'
-                ? 'disconnected'
-                : 'connected',
-            )
-          }
-        >
-          {vpnConnected
-            ? 'Disconnect VPN'
-            : 'Connect to site (VPN)'}
-        </button>
-      </div>
+      <VpnConnection
+        clientId={clientId}
+        clientName={clientName}
+      />
     </aside>
   )
 }
