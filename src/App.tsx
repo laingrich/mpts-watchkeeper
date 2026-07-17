@@ -7,7 +7,6 @@ import {
 import UserMenu, { type ClientPrincipal } from './UserMenu'
 import DeviceLauncher from './components/DeviceLauncher'
 import ClientPicker from './components/ClientPicker'
-import SharePointFolderLink from './components/SharePointFolderLink'
 import SharePointClientLink from './components/SharePointClientLink'
 
 type JetbuiltClient = {
