@@ -45,6 +45,29 @@ type ConfigResponse = {
   updatedBy: string | null
 }
 
+type DeviceReachability =
+  | 'checking'
+  | 'reachable'
+  | 'unreachable'
+  | 'not-checkable'
+  | 'unknown'
+
+type DeviceStatusResult = {
+  id: string
+  checkable: boolean
+  reachable: boolean | null
+  status: string
+  message: string
+  latencyMs?: number
+}
+
+type DeviceStatusResponse = {
+  devices: DeviceStatusResult[]
+  checkedAt: string
+}
+
+type ReachabilityHelperState = 'checking' | 'online' | 'offline'
+
 type DeviceLauncherProps = {
   siteId: string
   siteName: string
@@ -64,6 +87,7 @@ type GroupDraft = {
 }
 
 const saltmarshSeed = saltmarshLauncher as LauncherConfig
+const LOCAL_AGENT_URL = 'http://127.0.0.1:47831'
 
 const defaultGroups: LauncherGroup[] = [
   {
@@ -176,6 +200,16 @@ export default function DeviceLauncher({
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [deviceReachability, setDeviceReachability] = useState<
+    Record<string, DeviceReachability>
+  >({})
+  const [reachabilityMessages, setReachabilityMessages] = useState<
+    Record<string, string>
+  >({})
+  const [reachabilityHelper, setReachabilityHelper] =
+    useState<ReachabilityHelperState>('checking')
+  const [reachabilityCheckedAt, setReachabilityCheckedAt] =
+    useState<string | null>(null)
 
   useEffect(() => {
     void loadConfig()
@@ -186,6 +220,119 @@ export default function DeviceLauncher({
       onDeviceCountChange?.(config.devices.length)
     }
   }, [config?.devices.length, onDeviceCountChange])
+
+  useEffect(() => {
+    if (!config) return
+
+    let cancelled = false
+    let intervalId: number | null = null
+
+    async function checkDevices() {
+      if (!config) return
+
+      const networkDevices = config.devices.filter(device =>
+        /^https?:\/\//i.test(device.link),
+      )
+
+      setDeviceReachability(current => {
+        const next = { ...current }
+
+        for (const device of networkDevices) {
+          if (!next[device.id] || next[device.id] === 'unknown') {
+            next[device.id] = 'checking'
+          }
+        }
+
+        for (const device of config.devices) {
+          if (!/^https?:\/\//i.test(device.link)) {
+            next[device.id] = 'not-checkable'
+          }
+        }
+
+        return next
+      })
+
+      if (networkDevices.length === 0) {
+        setReachabilityHelper('online')
+        setReachabilityCheckedAt(new Date().toISOString())
+        return
+      }
+
+      try {
+        const response = await fetch(`${LOCAL_AGENT_URL}/devices/status`, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store',
+          body: JSON.stringify({
+            clientId,
+            clientName,
+            devices: networkDevices.map(device => ({
+              id: device.id,
+              link: device.link,
+            })),
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Local helper returned ${response.status}`)
+        }
+
+        const data = (await response.json()) as DeviceStatusResponse
+
+        if (cancelled) return
+
+        const statuses: Record<string, DeviceReachability> = {}
+        const messages: Record<string, string> = {}
+
+        for (const device of config.devices) {
+          if (!/^https?:\/\//i.test(device.link)) {
+            statuses[device.id] = 'not-checkable'
+          }
+        }
+
+        for (const result of data.devices) {
+          statuses[result.id] = result.checkable
+            ? result.reachable
+              ? 'reachable'
+              : 'unreachable'
+            : 'not-checkable'
+          messages[result.id] = result.message
+        }
+
+        setDeviceReachability(statuses)
+        setReachabilityMessages(messages)
+        setReachabilityHelper('online')
+        setReachabilityCheckedAt(data.checkedAt)
+      } catch {
+        if (cancelled) return
+
+        const statuses: Record<string, DeviceReachability> = {}
+
+        for (const device of config.devices) {
+          statuses[device.id] = /^https?:\/\//i.test(device.link)
+            ? 'unknown'
+            : 'not-checkable'
+        }
+
+        setDeviceReachability(statuses)
+        setReachabilityMessages({})
+        setReachabilityHelper('offline')
+        setReachabilityCheckedAt(null)
+      }
+    }
+
+    setReachabilityHelper('checking')
+    void checkDevices()
+    intervalId = window.setInterval(() => void checkDevices(), 15_000)
+
+    return () => {
+      cancelled = true
+      if (intervalId !== null) window.clearInterval(intervalId)
+    }
+  }, [clientId, clientName, config])
 
   async function loadConfig() {
     setIsLoading(true)
@@ -257,6 +404,40 @@ export default function DeviceLauncher({
       })
       .filter(item => item.devices.length > 0 || isEditing)
   }, [config, query, isEditing])
+
+  const reachabilitySummary = useMemo(() => {
+    if (!config) return 'Checking device availability…'
+
+    if (reachabilityHelper === 'offline') {
+      return 'Device availability is unavailable because the local Watchkeeper helper is not running.'
+    }
+
+    if (reachabilityHelper === 'checking') {
+      return 'Checking which devices are reachable from this computer…'
+    }
+
+    const checkableDevices = config.devices.filter(device =>
+      /^https?:\/\//i.test(device.link),
+    )
+    const reachableDevices = checkableDevices.filter(
+      device => deviceReachability[device.id] === 'reachable',
+    )
+
+    const checkedText = reachabilityCheckedAt
+      ? ` Last checked ${new Date(reachabilityCheckedAt).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })}.`
+      : ''
+
+    return `${reachableDevices.length} of ${checkableDevices.length} devices reachable from this computer. Access may be direct on the site network or through VPN.${checkedText}`
+  }, [
+    config,
+    deviceReachability,
+    reachabilityCheckedAt,
+    reachabilityHelper,
+  ])
 
   const mappedDeviceIds = useMemo(
     () =>
@@ -751,9 +932,8 @@ export default function DeviceLauncher({
         </div>
       </div>
 
-      <p className="launcher-network-note">
-        Device pages are available only while your computer has access
-        to the client network or VPN.
+      <p className="launcher-network-note" aria-live="polite">
+        {reachabilitySummary}
       </p>
 
       {visibleGroups.length === 0 ? (
@@ -835,6 +1015,28 @@ export default function DeviceLauncher({
                 <div className="launcher-grid">
                   {devices.map(device => {
                     const mapOpen = expandedMaps.has(device.id)
+                    const reachability =
+                      deviceReachability[device.id] ?? 'checking'
+                    const canOpenDevice =
+                      reachability === 'reachable' ||
+                      reachability === 'not-checkable'
+                    const reachabilityLabel =
+                      reachability === 'reachable'
+                        ? 'Online'
+                        : reachability === 'unreachable'
+                          ? 'Offline'
+                          : reachability === 'not-checkable'
+                            ? 'Launch link'
+                            : reachability === 'unknown'
+                              ? 'Status unavailable'
+                              : 'Checking…'
+                    const reachabilityTitle =
+                      reachabilityMessages[device.id] ||
+                      (reachability === 'unknown'
+                        ? 'The local Watchkeeper helper is not available'
+                        : reachability === 'unreachable'
+                          ? 'This device cannot currently be reached from this computer'
+                          : reachabilityLabel)
 
                     return (
                       <article
@@ -869,6 +1071,15 @@ export default function DeviceLauncher({
                             </p>
                             <h3>{device.title}</h3>
                             <span>{device.link}</span>
+                            {!isEditing && (
+                              <span
+                                className={`launcher-device-reachability ${reachability}`}
+                                title={reachabilityTitle}
+                              >
+                                <span aria-hidden="true" />
+                                {reachabilityLabel}
+                              </span>
+                            )}
                           </div>
 
                           <div className="launcher-card-actions">
@@ -904,13 +1115,25 @@ export default function DeviceLauncher({
                                     {mapOpen ? 'Hide map' : 'Show map'}
                                   </button>
                                 )}
-                                <a
-                                  href={device.link}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  Open device
-                                </a>
+                                {canOpenDevice ? (
+                                  <a
+                                    href={device.link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={reachabilityTitle}
+                                  >
+                                    Open device
+                                  </a>
+                                ) : (
+                                  <button
+                                    className="launcher-open-device-disabled"
+                                    type="button"
+                                    disabled
+                                    title={reachabilityTitle}
+                                  >
+                                    Open device
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>

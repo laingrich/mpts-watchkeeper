@@ -447,3 +447,50 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Watchkeeper device reachability */
+.launcher-device-reachability {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  margin-top: 10px;
+  color: #94a3b8 !important;
+  font-size: 0.7rem !important;
+  font-weight: 750;
+}
+
+.launcher-device-reachability > span {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.launcher-device-reachability.reachable {
+  color: #86efac !important;
+}
+
+.launcher-device-reachability.unreachable,
+.launcher-device-reachability.unknown {
+  color: #94a3b8 !important;
+}
+
+.launcher-device-reachability.checking {
+  color: #fde68a !important;
+}
+
+.launcher-device-reachability.not-checkable {
+  color: #7dd3fc !important;
+}
+
+.launcher-card-actions .launcher-open-device-disabled,
+.launcher-card-actions .launcher-open-device-disabled:hover {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(148, 163, 184, 0.08);
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
