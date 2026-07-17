@@ -36,12 +36,31 @@ type DeviceLauncherProps = {
   siteName: string
 }
 
-const launcherBySite: Record<string, LauncherConfig> = {
-  saltmarsh: saltmarshLauncher as LauncherConfig,
+const launcherBySite: Record<string, LauncherConfig> = {}
+
+const launcherByClientName: Record<string, LauncherConfig> = {
+  'saltmarsh house': saltmarshLauncher as LauncherConfig,
 }
 
-export function getLauncherDeviceCount(siteId: string, fallback: number) {
-  return launcherBySite[siteId]?.devices.length ?? fallback
+function resolveLauncher(
+  clientId: string,
+  clientName = '',
+) {
+  return (
+    launcherBySite[clientId] ??
+    launcherByClientName[clientName.trim().toLowerCase()]
+  )
+}
+
+export function getLauncherDeviceCount(
+  clientId: string,
+  fallback: number,
+  clientName = '',
+) {
+  return (
+    resolveLauncher(clientId, clientName)?.devices.length ??
+    fallback
+  )
 }
 
 function renderCell(cell: DetailCell) {
@@ -80,7 +99,7 @@ export default function DeviceLauncher({
   siteId,
   siteName,
 }: DeviceLauncherProps) {
-  const config = launcherBySite[siteId]
+  const config = resolveLauncher(siteId, siteName)
   const [query, setQuery] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [selectedDevice, setSelectedDevice] = useState<LauncherDevice | null>(null)
