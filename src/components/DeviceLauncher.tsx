@@ -302,6 +302,8 @@ export default function DeviceLauncher({
   }
 
   function setAllGroups(collapsed: boolean) {
+    if (!config) return
+
     setCollapsedGroups(
       collapsed
         ? new Set(config.groups.map(group => group.id))
@@ -318,6 +320,7 @@ export default function DeviceLauncher({
   }
 
   function toggleAllMaps() {
+    if (!config) return
     if (allMapsOpen) {
       setExpandedMaps(new Set())
       return
@@ -410,6 +413,7 @@ export default function DeviceLauncher({
   }
 
   function addDevice(groupId?: string) {
+    if (!config) return
     const group = groupId ?? config.groups[0]?.id
 
     if (!group) {
@@ -535,7 +539,7 @@ export default function DeviceLauncher({
   function applyGroupDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!groupDraft) return
+    if (!groupDraft || !config) return
 
     const title = groupDraft.group.title.trim()
 
@@ -574,6 +578,7 @@ export default function DeviceLauncher({
   }
 
   function removeGroup(group: LauncherGroup) {
+    if (!config) return
     const deviceCount = config.devices.filter(
       device => device.group === group.id,
     ).length
