@@ -325,3 +325,13 @@ main {
 .retry-button:hover {
   background: #1d4ed8;
 }
+
+.grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import UserMenu from './UserMenu'
+import UserMenu, { type ClientPrincipal } from './UserMenu'
 
 type Device = {
   name: string
@@ -20,7 +20,7 @@ type SitesResponse = {
   count: number
 }
 
-const tabs = ['Overview', 'Devices', 'Documents', 'Issues'] as const
+const tabs = ['Overview', 'Devices', 'Documents', 'Issues', 'Admin'] as const
 type Tab = (typeof tabs)[number]
 
 export default function App() {
@@ -30,6 +30,8 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] =
+    useState<ClientPrincipal | null>(null)
 
   useEffect(() => {
     async function loadSites() {
@@ -105,6 +107,13 @@ export default function App() {
     setTab('Overview')
   }
 
+  const isAdmin =
+    currentUser?.userRoles.includes('watchkeeper_admin') ?? false
+
+  const visibleTabs = isAdmin
+    ? tabs
+    : tabs.filter(item => item !== 'Admin')
+
   if (isLoading) {
     return (
       <div className="app-shell">
@@ -116,7 +125,7 @@ export default function App() {
             <h1>Watchkeeper</h1>
           </div>
 
-          <UserMenu />
+          <UserMenu onUserLoaded={setCurrentUser} />
         </header>
 
         <main>
@@ -140,7 +149,7 @@ export default function App() {
             <h1>Watchkeeper</h1>
           </div>
 
-          <UserMenu />
+          <UserMenu onUserLoaded={setCurrentUser} />
         </header>
 
         <main>
@@ -172,7 +181,7 @@ export default function App() {
             <h1>Watchkeeper</h1>
           </div>
 
-          <UserMenu />
+          <UserMenu onUserLoaded={setCurrentUser} />
         </header>
 
         <main>
@@ -216,7 +225,7 @@ export default function App() {
             </select>
           </div>
 
-          <UserMenu />
+          <UserMenu onUserLoaded={setCurrentUser} />
         </div>
       </header>
 
@@ -246,7 +255,7 @@ export default function App() {
         </section>
 
         <nav className="tabs" aria-label="Watchkeeper sections">
-          {tabs.map(item => (
+          {visibleTabs.map(item => (
             <button
               key={item}
               className={tab === item ? 'active' : ''}
@@ -343,6 +352,27 @@ export default function App() {
               No open issues. The backend will store issues, updates, owners
               and service history.
             </p>
+          </section>
+        )}
+
+        {tab === 'Admin' && isAdmin && (
+          <section className="grid two">
+            <article className="panel">
+              <p className="eyebrow">SITE MANAGEMENT</p>
+              <h3>Sites and devices</h3>
+              <p>
+                Add, edit and organise Watchkeeper sites and devices.
+                Persistent editing will be added next.
+              </p>
+            </article>
+
+            <article className="panel">
+              <p className="eyebrow">ACCESS MANAGEMENT</p>
+              <h3>Users and roles</h3>
+              <p>
+                Manage administrator and engineer access to Watchkeeper.
+              </p>
+            </article>
           </section>
         )}
       </main>

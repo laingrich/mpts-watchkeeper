@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-type ClientPrincipal = {
+export type ClientPrincipal = {
   identityProvider: string
   userId: string
   userDetails: string
@@ -11,7 +11,25 @@ type AuthResponse = {
   clientPrincipal: ClientPrincipal | null
 }
 
-export default function UserMenu() {
+type UserMenuProps = {
+  onUserLoaded?: (user: ClientPrincipal | null) => void
+}
+
+function getRoleLabel(user: ClientPrincipal) {
+  if (user.userRoles.includes('watchkeeper_admin')) {
+    return 'Administrator'
+  }
+
+  if (user.userRoles.includes('watchkeeper_engineer')) {
+    return 'Engineer'
+  }
+
+  return 'Signed in'
+}
+
+export default function UserMenu({
+  onUserLoaded,
+}: UserMenuProps) {
   const [user, setUser] = useState<ClientPrincipal | null>(null)
 
   useEffect(() => {
@@ -20,19 +38,22 @@ export default function UserMenu() {
         const response = await fetch('/.auth/me')
 
         if (!response.ok) {
+          onUserLoaded?.(null)
           return
         }
 
         const data = (await response.json()) as AuthResponse
+
         setUser(data.clientPrincipal)
+        onUserLoaded?.(data.clientPrincipal)
       } catch {
-        // Authentication information is unavailable when using Vite alone
-        // during local development.
+        setUser(null)
+        onUserLoaded?.(null)
       }
     }
 
     void loadUser()
-  }, [])
+  }, [onUserLoaded])
 
   if (!user) {
     return null
@@ -46,7 +67,10 @@ export default function UserMenu() {
         </span>
 
         <div>
-          <span className="user-label">SIGNED IN</span>
+          <span className="user-label">
+            {getRoleLabel(user).toUpperCase()}
+          </span>
+
           <strong>{user.userDetails}</strong>
         </div>
       </div>
