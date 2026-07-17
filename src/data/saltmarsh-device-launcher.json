@@ -1,0 +1,631 @@
+{
+  "version": 1,
+  "exportedAt": "2026-07-16T09:07:17.042Z",
+  "groups": [
+    {
+      "id": "management",
+      "title": "Management",
+      "accent": "rgba(168, 85, 247, 0.56)"
+    },
+    {
+      "id": "power",
+      "title": "Power",
+      "accent": "rgba(245, 158, 11, 0.42)"
+    },
+    {
+      "id": "audio-video-distribution",
+      "title": "Audio / Video Distribution",
+      "accent": "rgba(59, 130, 246, 0.42)"
+    },
+    {
+      "id": "audio-amplifiers",
+      "title": "Audio Amplifiers",
+      "accent": "rgba(34, 197, 94, 0.34)"
+    },
+    {
+      "id": "cinema",
+      "title": "Cinema",
+      "accent": "rgba(244, 63, 94, 0.38)"
+    }
+  ],
+  "devices": [
+    {
+      "id": "dev-rti-xp8v",
+      "title": "Rti XP-8v",
+      "link": "http://192.168.2.10/",
+      "group": "management"
+    },
+    {
+      "id": "dev-gude-av1",
+      "title": "Gude IPPDU AV#1",
+      "link": "http://192.168.2.50/",
+      "group": "power",
+      "details": {
+        "type": "outlet",
+        "title": "Outlet map",
+        "rows": [
+          [
+            1,
+            "Unused"
+          ],
+          [
+            2,
+            "Unused"
+          ],
+          [
+            3,
+            "AV RACK FAN"
+          ],
+          [
+            4,
+            "AD-1616 #3"
+          ],
+          [
+            5,
+            "AD-1616 #2"
+          ],
+          [
+            6,
+            "Crestron DM-NAX-4ZSP"
+          ],
+          [
+            7,
+            "ASW #8 AV"
+          ],
+          [
+            8,
+            "Snug Bijou"
+          ],
+          [
+            9,
+            "Playroom Bijou"
+          ],
+          [
+            10,
+            "AMP #3"
+          ],
+          [
+            11,
+            "AMP #2"
+          ],
+          [
+            12,
+            "AMP #1"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-gude-av2",
+      "title": "Gude IPPDU AV#2",
+      "link": "http://192.168.2.51/",
+      "group": "power",
+      "details": {
+        "type": "outlet",
+        "title": "Outlet map",
+        "rows": [
+          [
+            1,
+            "RTI Power Bar",
+            [
+              "RTI XP-8V",
+              "Heatmiser Neo",
+              "Freesat",
+              "RTI PCM4",
+              "Cinema Wyrestorm",
+              "Xbox Wyrestorm"
+            ]
+          ],
+          [
+            2,
+            "Lumagen"
+          ],
+          [
+            3,
+            "Apple TV"
+          ],
+          [
+            4,
+            "KPlayer"
+          ],
+          [
+            5,
+            "Netvio"
+          ],
+          [
+            6,
+            "Sky Stream 3"
+          ],
+          [
+            7,
+            "Sky Stream 2"
+          ],
+          [
+            8,
+            "Sky Stream 1"
+          ],
+          [
+            9,
+            "Avalon Cinema Amp"
+          ],
+          [
+            10,
+            "Cinema AVR"
+          ],
+          [
+            11,
+            "Unused"
+          ],
+          [
+            12,
+            "Unused"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-gude-panic",
+      "title": "Gude IPPDU Panic Room",
+      "link": "http://192.168.2.52",
+      "group": "power"
+    },
+    {
+      "id": "dev-gude-garage",
+      "title": "Gude IPPDU Garage",
+      "link": "http://192.168.2.53/",
+      "group": "power",
+      "details": {
+        "type": "outlet",
+        "title": "Outlet map",
+        "rows": [
+          [
+            1,
+            "Switch"
+          ],
+          [
+            2,
+            "Amp"
+          ],
+          [
+            3,
+            "Heatmiser Neo"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-gude-it",
+      "title": "Gude IPPDU IT Rack",
+      "link": "http://192.168.2.54",
+      "group": "power",
+      "details": {
+        "type": "outlet",
+        "title": "Outlet map",
+        "rows": [
+          [
+            1,
+            "Rack Fans"
+          ],
+          [
+            2,
+            "Aggr Switch"
+          ],
+          [
+            3,
+            "ASW2"
+          ],
+          [
+            4,
+            "ASW3"
+          ],
+          [
+            5,
+            "ASW4"
+          ],
+          [
+            6,
+            "ASW5"
+          ],
+          [
+            7,
+            "ASW6"
+          ],
+          [
+            8,
+            "ASW7 (Wifi)"
+          ],
+          [
+            9,
+            "Unused"
+          ],
+          [
+            10,
+            "Unused"
+          ],
+          [
+            11,
+            "Unused"
+          ],
+          [
+            12,
+            "Rack Fans"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-eaton-ups",
+      "title": "Eaton UPS",
+      "link": "http://192.168.2.55",
+      "group": "power"
+    },
+    {
+      "id": "dev-ad1616-2",
+      "title": "Rti AD1616#2",
+      "link": "http://192.168.2.17/",
+      "group": "audio-video-distribution",
+      "details": {
+        "type": "ad16",
+        "title": "AD16 pre-output / zone map",
+        "rows": [
+          [
+            1,
+            "Jake's Bedroom",
+            "NA"
+          ],
+          [
+            2,
+            "Jake's En-suite",
+            "NA"
+          ],
+          [
+            3,
+            "Tate's Bedroom",
+            "NA"
+          ],
+          [
+            4,
+            "Tate's En-suite",
+            "NA"
+          ],
+          [
+            5,
+            "Library",
+            "NA"
+          ],
+          [
+            6,
+            "Master Dressing Room",
+            "NA"
+          ],
+          [
+            7,
+            "Living Area",
+            "NA"
+          ],
+          [
+            8,
+            "FF Veranda",
+            "NA"
+          ],
+          [
+            9,
+            "GF Veranda",
+            ""
+          ],
+          [
+            10,
+            "Master En-suite",
+            ""
+          ],
+          [
+            11,
+            "Office",
+            "NA"
+          ],
+          [
+            12,
+            "Gym",
+            "NA"
+          ],
+          [
+            13,
+            "Snug",
+            "NA"
+          ],
+          [
+            14,
+            "Playroom",
+            "NA"
+          ],
+          [
+            15,
+            "Billiard",
+            "NA"
+          ],
+          [
+            16,
+            "Games",
+            "NA"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-ad1616-3",
+      "title": "Rti AD1616#3",
+      "link": "http://192.168.2.18/",
+      "group": "audio-video-distribution",
+      "details": {
+        "type": "ad16",
+        "title": "AD16 pre-output / zone map",
+        "rows": [
+          [
+            1,
+            "Pool House",
+            "NA"
+          ],
+          [
+            2,
+            "Pool External",
+            "NA"
+          ],
+          [
+            3,
+            "Pool Speakers",
+            "NA"
+          ],
+          [
+            4,
+            "Sauna",
+            "NA"
+          ],
+          [
+            5,
+            "Unused",
+            "NA"
+          ],
+          [
+            6,
+            "Unused",
+            "NA"
+          ],
+          [
+            7,
+            "Unused",
+            "NA"
+          ],
+          [
+            8,
+            "Unused",
+            "NA"
+          ],
+          [
+            9,
+            "Unused",
+            ""
+          ],
+          [
+            10,
+            "Unused",
+            ""
+          ],
+          [
+            11,
+            "Unused",
+            "NA"
+          ],
+          [
+            12,
+            "Unused",
+            "NA"
+          ],
+          [
+            13,
+            "Unused",
+            "NA"
+          ],
+          [
+            14,
+            "Unused",
+            "NA"
+          ],
+          [
+            15,
+            "Unused",
+            "NA"
+          ],
+          [
+            16,
+            "Unused",
+            "NA"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-4zsp",
+      "title": "Crestron DM-NAX-4ZSP",
+      "link": "https://192.168.2.32",
+      "group": "audio-video-distribution"
+    },
+    {
+      "id": "dev-director-1",
+      "title": "AudioControl Director 1",
+      "link": "http://192.168.2.20/",
+      "group": "audio-amplifiers",
+      "details": {
+        "type": "amp",
+        "title": "Speaker channel map",
+        "rows": [
+          [
+            "Jake's Bedroom",
+            "Ch 1\u20132"
+          ],
+          [
+            "Jake's Bedroom",
+            "Ch 3\u20134"
+          ],
+          [
+            "Jake's Ensuite",
+            "Ch 5\u20136"
+          ],
+          [
+            "Tate's Bedroom",
+            "Ch 7\u20138"
+          ],
+          [
+            "Tate's Bedroom",
+            "Ch 9\u201310"
+          ],
+          [
+            "Tate's Ensuite",
+            "Ch 11\u201312"
+          ],
+          [
+            "Library",
+            "Ch 13\u201314"
+          ],
+          [
+            "Library",
+            "Ch 15\u201316"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-director-2",
+      "title": "AudioControl Director 2",
+      "link": "http://192.168.2.21/",
+      "group": "audio-amplifiers",
+      "details": {
+        "type": "amp",
+        "title": "Speaker channel map",
+        "rows": [
+          [
+            "Master Dressing",
+            "Ch 1\u20132"
+          ],
+          [
+            "Dining",
+            "Ch 3\u20134"
+          ],
+          [
+            "Lounge",
+            "Ch 5\u20136"
+          ],
+          [
+            "Kitchen",
+            "Ch 7\u20138"
+          ],
+          [
+            "FF Veranda",
+            "Ch 9\u201310"
+          ],
+          [
+            "GF Veranda",
+            "Ch 11\u201312"
+          ],
+          [
+            "Master Ensuite",
+            "Ch 13\u201314"
+          ],
+          [
+            "Sauna",
+            "Ch 15\u201316"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-director-3",
+      "title": "AudioControl Director 3",
+      "link": "http://192.168.2.22",
+      "group": "audio-amplifiers",
+      "details": {
+        "type": "amp",
+        "title": "Speaker channel map",
+        "rows": [
+          [
+            "Billiard",
+            "Ch 1\u20132"
+          ],
+          [
+            "Billiard",
+            "Ch 3\u20134"
+          ],
+          [
+            "Games",
+            "Ch 5\u20136"
+          ],
+          [
+            "Games",
+            "Ch 7\u20138"
+          ],
+          [
+            "Eric's Office",
+            "Ch 9\u201310"
+          ],
+          [
+            "Eric's Office",
+            "Ch 11\u201312"
+          ],
+          [
+            "Gym",
+            "Ch 13\u201314"
+          ],
+          [
+            "Gym",
+            "Ch 15\u201316"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-director-4",
+      "title": "AudioControl Director 4",
+      "link": "http://192.168.2.23/",
+      "group": "audio-amplifiers",
+      "details": {
+        "type": "amp",
+        "title": "Speaker channel map",
+        "rows": [
+          [
+            "Pool House",
+            "Ch 1\u20134"
+          ],
+          [
+            "Pool Exterior",
+            "Ch 5\u20138"
+          ],
+          [
+            "Pool Speakers",
+            "Ch 9\u201312"
+          ],
+          [
+            "Unused",
+            "Ch 13\u201316"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "dev-concert-avr",
+      "title": "Concert AVR",
+      "link": "http://192.168.2.26/",
+      "group": "cinema"
+    },
+    {
+      "id": "dev-kscape",
+      "title": "Kaleidescape Kscape",
+      "link": "http://192.168.2.31/",
+      "group": "cinema"
+    },
+    {
+      "id": "dev-barco",
+      "title": "Barco Projector",
+      "link": "http://192.168.2.45/",
+      "group": "cinema"
+    }
+  ]
+}

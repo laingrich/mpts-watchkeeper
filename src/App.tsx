@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import UserMenu, { type ClientPrincipal } from './UserMenu'
+import DeviceLauncher, { getLauncherDeviceCount } from './components/DeviceLauncher'
 
 type Device = {
   name: string
@@ -270,7 +271,7 @@ export default function App() {
           <section className="grid three">
             <article className="panel">
               <p className="eyebrow">DEVICES</p>
-              <h3>{site.devices.length}</h3>
+              <h3>{getLauncherDeviceCount(site.id, site.devices.length)}</h3>
               <p>Configured devices</p>
             </article>
 
@@ -289,50 +290,10 @@ export default function App() {
         )}
 
         {tab === 'Devices' && (
-          <section>
-            <input
-              className="search"
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder="Search devices..."
-            />
-
-            {site.devices.length === 0 ? (
-              <article className="panel empty-state">
-                <h3>No devices configured</h3>
-                <p>
-                  Devices will appear here when onboarding for {site.name} is
-                  completed.
-                </p>
-              </article>
-            ) : Object.keys(groups).length === 0 ? (
-              <article className="panel empty-state">
-                <h3>No matching devices</h3>
-                <p>Try another device name or group.</p>
-              </article>
-            ) : (
-              Object.entries(groups).map(([group, devices]) => (
-                <div className="device-group" key={group}>
-                  <h3>{group}</h3>
-
-                  <div className="grid cards">
-                    {devices.map(device => (
-                      <a
-                        className="device-card"
-                        href={device.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        key={device.name}
-                      >
-                        <strong>{device.name}</strong>
-                        <span>{device.url}</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </section>
+          <DeviceLauncher
+            siteId={site.id}
+            siteName={site.name}
+          />
         )}
 
         {tab === 'Documents' && (
