@@ -3,6 +3,7 @@ import UserMenu, { type ClientPrincipal } from './UserMenu'
 import DeviceLauncher, {
   getLauncherDeviceCount,
 } from './components/DeviceLauncher'
+import ClientPicker from './components/ClientPicker'
 
 type JetbuiltClient = {
   id: string
@@ -175,21 +176,11 @@ export default function App() {
         </div>
 
         <div className="header-actions">
-          <div className="site-selector">
-            <span className="status-dot status-dot-source" />
-
-            <select
-              value={selectedClientId}
-              onChange={event => changeClient(event.target.value)}
-              aria-label="Select client"
-            >
-              {clientList.map(item => (
-                <option value={item.id} key={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ClientPicker
+            clients={clientList}
+            selectedClientId={selectedClientId}
+            onChange={changeClient}
+          />
 
           <UserMenu onUserLoaded={setCurrentUser} />
         </div>
@@ -228,23 +219,44 @@ export default function App() {
 
         {tab === 'Overview' && (
           <section className="grid three">
-            <article className="panel">
+            <button
+              className="panel overview-card"
+              type="button"
+              onClick={() => setTab('Devices')}
+            >
               <p className="eyebrow">DEVICES</p>
               <h3>{launcherDeviceCount}</h3>
               <p>Configured Watchkeeper devices</p>
-            </article>
+              <span className="overview-card-link">
+                View devices →
+              </span>
+            </button>
 
-            <article className="panel">
+            <button
+              className="panel overview-card"
+              type="button"
+              onClick={() => setTab('Issues')}
+            >
               <p className="eyebrow">OPEN ISSUES</p>
               <h3>0</h3>
               <p>Issue integration will be added later</p>
-            </article>
+              <span className="overview-card-link">
+                View issues →
+              </span>
+            </button>
 
-            <article className="panel">
+            <button
+              className="panel overview-card"
+              type="button"
+              onClick={() => setTab('Documents')}
+            >
               <p className="eyebrow">DOCUMENTS</p>
               <h3>SharePoint</h3>
               <p>Document integration placeholder</p>
-            </article>
+              <span className="overview-card-link">
+                View documents →
+              </span>
+            </button>
           </section>
         )}
 
