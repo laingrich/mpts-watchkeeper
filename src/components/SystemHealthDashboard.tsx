@@ -1,9 +1,11 @@
+import type { ClientSettings } from '../clientSettings'
 import './SystemHealthDashboard.css'
 
 type SystemHealthDashboardProps = {
   clientName: string
   configuredDeviceCount: number
   onOpenDevices: () => void
+  monitoring: ClientSettings['monitoring']
 }
 
 type HealthCheck = {
@@ -49,8 +51,15 @@ export default function SystemHealthDashboard({
   clientName,
   configuredDeviceCount,
   onOpenDevices,
+  monitoring,
 }: SystemHealthDashboardProps) {
   const sampleDeviceTotal = configuredDeviceCount || 13
+  const monitoringSource = monitoring.domotzEnabled
+    ? 'Domotz and Watchkeeper health checks'
+    : 'Watchkeeper health checks'
+  const monitoringBadge = monitoring.enabled
+    ? `Mock data · configured every ${monitoring.pollIntervalMinutes} min`
+    : 'Mock data · monitoring disabled'
   const sampleDeviceOnline = Math.max(sampleDeviceTotal - 1, 0)
 
   return (
@@ -60,13 +69,14 @@ export default function SystemHealthDashboard({
           <p className="eyebrow">SYSTEM HEALTH</p>
           <h3>Monitoring overview</h3>
           <p>
-            Example of the key operational information Watchkeeper will
-            collect for {clientName}.
+            {monitoring.enabled
+              ? `Configured monitoring view for ${clientName}.`
+              : `Monitoring has not yet been enabled for ${clientName}.`}
           </p>
         </div>
 
         <span className="system-health-mock-badge">
-          Mock data — not live
+          {monitoringBadge}
         </span>
       </header>
 
@@ -161,8 +171,9 @@ export default function SystemHealthDashboard({
       </div>
 
       <footer className="system-health-footer">
-        Planned live sources include the local reachability helper,
-        Domotz, UniFi, UPS/PDU telemetry and device-specific health checks.
+        {monitoring.enabled
+          ? `${monitoringSource}; live readings are not connected yet.`
+          : 'Enable monitoring in Site configuration to define poll intervals and data sources.'}
       </footer>
     </section>
   )

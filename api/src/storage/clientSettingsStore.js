@@ -1,3 +1,6 @@
+const {
+  normaliseClientSettings
+} = require('../settings/clientSettingsSchema')
 const { BlobServiceClient } = require('@azure/storage-blob')
 
 let containerPromise
@@ -57,9 +60,7 @@ async function readClientSettings(clientId) {
 
   if (!(await blob.exists())) {
     return {
-      settings: {
-        sharePointUrl: ''
-      },
+      settings: normaliseClientSettings(null),
       etag: null,
       updatedAt: null,
       updatedBy: null
@@ -70,7 +71,9 @@ async function readClientSettings(clientId) {
   const properties = await blob.getProperties()
 
   return {
-    settings: JSON.parse(buffer.toString('utf8')),
+    settings: normaliseClientSettings(
+      JSON.parse(buffer.toString('utf8'))
+    ),
     etag: properties.etag || null,
     updatedAt:
       properties.metadata?.updatedat ||
@@ -94,8 +97,10 @@ async function writeClientSettings(
   )
 
   const updatedAt = new Date().toISOString()
+  const normalisedSettings =
+    normaliseClientSettings(settings)
   const body = Buffer.from(
-    JSON.stringify(settings, null, 2),
+    JSON.stringify(normalisedSettings, null, 2),
     'utf8'
   )
 
@@ -121,7 +126,7 @@ async function writeClientSettings(
   const properties = await blob.getProperties()
 
   return {
-    settings,
+    settings: normalisedSettings,
     etag: properties.etag || null,
     updatedAt,
     updatedBy

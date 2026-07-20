@@ -3,32 +3,28 @@ import {
   useState,
   type FormEvent,
 } from 'react'
+import {
+  normaliseClientSettings,
+  type ClientSettings,
+  type ClientSettingsResponse,
+} from '../clientSettings'
 import './SharePointClientLink.css'
-
-type ClientSettings = {
-  sharePointUrl: string
-}
-
-type ClientSettingsResponse = {
-  settings: ClientSettings
-  etag: string | null
-  updatedAt: string | null
-  updatedBy: string | null
-}
 
 type SharePointClientLinkProps = {
   clientId: string
   clientName: string
+  onSettingsChanged?: (settings: ClientSettings) => void
 }
 
 export default function SharePointClientLink({
   clientId,
   clientName,
+  onSettingsChanged,
 }: SharePointClientLinkProps) {
   const [settings, setSettings] =
-    useState<ClientSettings>({
-      sharePointUrl: '',
-    })
+    useState<ClientSettings>(() =>
+      normaliseClientSettings(null),
+    )
   const [draftUrl, setDraftUrl] = useState('')
   const [etag, setEtag] = useState<string | null>(null)
   const [updatedAt, setUpdatedAt] =
@@ -67,8 +63,10 @@ export default function SharePointClientLink({
       const data =
         (await response.json()) as ClientSettingsResponse
 
-      setSettings(data.settings)
-      setDraftUrl(data.settings.sharePointUrl)
+      const normalised = normaliseClientSettings(data.settings)
+      setSettings(normalised)
+      setDraftUrl(normalised.sharePointUrl)
+      onSettingsChanged?.(normalised)
       setEtag(data.etag)
       setUpdatedAt(data.updatedAt)
       setUpdatedBy(data.updatedBy)
@@ -127,8 +125,10 @@ export default function SharePointClientLink({
       const data =
         (await response.json()) as ClientSettingsResponse
 
-      setSettings(data.settings)
-      setDraftUrl(data.settings.sharePointUrl)
+      const normalised = normaliseClientSettings(data.settings)
+      setSettings(normalised)
+      setDraftUrl(normalised.sharePointUrl)
+      onSettingsChanged?.(normalised)
       setEtag(data.etag)
       setUpdatedAt(data.updatedAt)
       setUpdatedBy(data.updatedBy)

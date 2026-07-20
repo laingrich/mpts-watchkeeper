@@ -7,10 +7,17 @@ const {
   readClientSettings,
   writeClientSettings
 } = require('../storage/clientSettingsStore')
+const {
+  mergeClientSettings
+} = require('../settings/clientSettingsSchema')
 
 const allowedRoles = [
   'watchkeeper_admin',
   'watchkeeper_engineer'
+]
+
+const adminRoles = [
+  'watchkeeper_admin'
 ]
 
 app.http('clientSettings', {
@@ -43,29 +50,41 @@ app.http('clientSettings', {
     }
 
     try {
-      if (request.method === 'GET') {
-        const result =
-          await readClientSettings(clientId)
+      const current = await readClientSettings(clientId)
 
-        return json(200, result, {
+      if (request.method === 'GET') {
+        return json(200, current, {
           'Cache-Control': 'no-store'
         })
       }
 
       const body = await request.json()
-      const settings = validateSettings(body)
+
+      if (
+        !hasAnyRole(principal, adminRoles) &&
+        !isSharePointOnlyUpdate(body)
+      ) {
+        return json(403, {
+          error:
+            'Administrator access is required to change site configuration'
+        })
+      }
+
+      const settings = mergeClientSettings(
+        current.settings,
+        body
+      )
       const expectedEtag =
         request.headers.get('if-match')
 
-      const result =
-        await writeClientSettings(
-          clientId,
-          settings,
-          principal.userDetails ||
-            principal.userId ||
-            'unknown',
-          expectedEtag
-        )
+      const result = await writeClientSettings(
+        clientId,
+        settings,
+        principal.userDetails ||
+          principal.userId ||
+          'unknown',
+        expectedEtag
+      )
 
       return json(200, result, {
         'Cache-Control': 'no-store'
@@ -90,7 +109,8 @@ app.http('clientSettings', {
 
       return json(
         message.startsWith('Invalid') ||
-        message.includes('required')
+        message.includes('required') ||
+        message.includes('too long')
           ? 400
           : 500,
         { error: message }
@@ -99,40 +119,21 @@ app.http('clientSettings', {
   }
 })
 
-function validateSettings(value) {
-  if (!value || typeof value !== 'object') {
-    throw new Error('Invalid client settings')
+function isSharePointOnlyUpdate(value) {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value)
+  ) {
+    return false
   }
 
-  const sharePointUrl =
-    typeof value.sharePointUrl === 'string'
-      ? value.sharePointUrl.trim()
-      : ''
+  const keys = Object.keys(value)
 
-  if (sharePointUrl) {
-    let parsed
-
-    try {
-      parsed = new URL(sharePointUrl)
-    } catch {
-      throw new Error('Invalid SharePoint URL')
-    }
-
-    if (
-      parsed.protocol !== 'https:' ||
-      !parsed.hostname.endsWith(
-        '.sharepoint.com'
-      )
-    ) {
-      throw new Error(
-        'Invalid SharePoint URL'
-      )
-    }
-  }
-
-  return {
-    sharePointUrl
-  }
+  return (
+    keys.length === 1 &&
+    keys[0] === 'sharePointUrl'
+  )
 }
 
 function json(status, jsonBody, headers = {}) {

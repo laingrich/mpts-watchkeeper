@@ -14,6 +14,16 @@ import VpnConnection from './components/VpnConnection'
 import SystemHealthDashboard from './components/SystemHealthDashboard'
 import IssueManagement from './components/IssueManagement'
 import ServiceReportForm from './components/ServiceReportForm'
+import SiteConfiguration from './components/SiteConfiguration'
+import {
+  accessProviderDescriptions,
+  accessProviderLabels,
+  createDefaultClientSettings,
+  normaliseClientSettings,
+  type AccessProvider,
+  type ClientSettings,
+  type ClientSettingsResponse,
+} from './clientSettings'
 
 type JetbuiltClient = {
   id: string
@@ -36,7 +46,7 @@ const tabs = [
   'Documents',
   'Issues',
   'Submit service report',
-  'Access',
+  'Site configuration',
 ] as const
 
 type Tab = (typeof tabs)[number]
@@ -52,6 +62,8 @@ export default function App() {
   const [fetchedAt, setFetchedAt] = useState<string | null>(null)
   const [deviceCounts, setDeviceCounts] =
     useState<Record<string, number>>({})
+  const [clientSettings, setClientSettings] =
+    useState<ClientSettings>(createDefaultClientSettings)
 
   useEffect(() => {
     void loadClients()
@@ -62,7 +74,9 @@ export default function App() {
       return
     }
 
+    setClientSettings(createDefaultClientSettings())
     void loadDeviceCount(selectedClientId)
+    void loadClientSettings(selectedClientId)
   }, [selectedClientId])
 
   async function loadClients(forceRefresh = false) {
@@ -155,6 +169,30 @@ export default function App() {
     }
   }
 
+  async function loadClientSettings(clientId: string) {
+    try {
+      const response = await fetch(
+        `/api/client-settings/${encodeURIComponent(clientId)}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+          cache: 'no-store',
+        },
+      )
+
+      if (!response.ok) {
+        return
+      }
+
+      const data =
+        (await response.json()) as ClientSettingsResponse
+      setClientSettings(normaliseClientSettings(data.settings))
+    } catch {
+      // The page remains usable with default settings.
+    }
+  }
+
   const client = useMemo(
     () =>
       clientList.find(
@@ -170,7 +208,7 @@ export default function App() {
 
   const visibleTabs = isAdmin
     ? tabs
-    : tabs.filter(item => item !== 'Access')
+    : tabs.filter(item => item !== 'Site configuration')
 
   function changeClient(clientId: string) {
     setSelectedClientId(clientId)
@@ -257,6 +295,7 @@ export default function App() {
             fetchedAt={fetchedAt}
             clientId={client.id}
             clientName={client.name}
+            accessProvider={clientSettings.access.provider}
           />
         </section>
 
@@ -319,6 +358,7 @@ export default function App() {
               clientName={client.name}
               configuredDeviceCount={launcherDeviceCount}
               onOpenDevices={() => setTab('Devices')}
+              monitoring={clientSettings.monitoring}
             />
           </div>
         )}
@@ -340,6 +380,7 @@ export default function App() {
           <SharePointClientLink
             clientId={client.id}
             clientName={client.name}
+            onSettingsChanged={setClientSettings}
           />
         )}
 
@@ -357,15 +398,12 @@ export default function App() {
           />
         )}
 
-        {tab === 'Access' && isAdmin && (
-          <section className="panel empty-state">
-            <p className="eyebrow">ACCESS MANAGEMENT</p>
-            <h3>Users and roles</h3>
-            <p>
-              Manage administrator and engineer access to
-              Watchkeeper.
-            </p>
-          </section>
+        {tab === 'Site configuration' && isAdmin && (
+          <SiteConfiguration
+            clientId={client.id}
+            clientName={client.name}
+            onSettingsChanged={setClientSettings}
+          />
         )}
       </main>
     </div>
@@ -376,12 +414,14 @@ type ConnectionsCardProps = {
   fetchedAt: string | null
   clientId: string
   clientName: string
+  accessProvider: AccessProvider
 }
 
 function ConnectionsCard({
   fetchedAt,
   clientId,
   clientName,
+  accessProvider,
 }: ConnectionsCardProps) {
   return (
     <aside className="hero-connections-card">
@@ -407,12 +447,84 @@ function ConnectionsCard({
         </span>
       </div>
 
+      <AccessConnection
+        clientId={clientId}
+        clientName={clientName}
+        provider={accessProvider}
+      />
+    </aside>
+  )
+}
+
+type AccessConnectionProps = {
+  clientId: string
+  clientName: string
+  provider: AccessProvider
+}
+
+function AccessConnection({
+  clientId,
+  clientName,
+  provider,
+}: AccessConnectionProps) {
+  if (
+    provider === 'not-configured' ||
+    provider === 'unifi-teleport'
+  ) {
+    return (
       <VpnConnection
         clientId={clientId}
         clientName={clientName}
       />
-    </aside>
+    )
+  }
+
+  const status = accessProviderStatus(provider)
+
+  return (
+    <div className="hero-connection-row">
+      <span className={`status-dot ${status.dotClass}`} />
+
+      <div className="hero-connection-copy">
+        <strong>{accessProviderLabels[provider]}</strong>
+        <small>{accessProviderDescriptions[provider]}</small>
+      </div>
+
+      <span className="hero-connection-label">
+        {status.label}
+      </span>
+    </div>
   )
+}
+
+function accessProviderStatus(provider: AccessProvider) {
+  switch (provider) {
+    case 'local-network':
+      return {
+        label: 'Local only',
+        dotClass: 'hero-status-dot-muted',
+      }
+    case 'watchkeeper-pc':
+      return {
+        label: 'Configured',
+        dotClass: 'status-dot-pending',
+      }
+    case 'unifi-wireguard':
+      return {
+        label: 'Configured',
+        dotClass: 'status-dot-pending',
+      }
+    case 'attended-support':
+      return {
+        label: 'Approval required',
+        dotClass: 'status-dot-pending',
+      }
+    default:
+      return {
+        label: 'Unavailable',
+        dotClass: 'hero-status-dot-muted',
+      }
+  }
 }
 
 type PageShellProps = {
