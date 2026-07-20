@@ -4,6 +4,10 @@ import {
   useRef,
   useState,
 } from 'react'
+import {
+  normaliseClientSettings,
+  type ClientSettingsResponse,
+} from '../clientSettings'
 import './VpnConnection.css'
 
 type VpnState =
@@ -12,7 +16,8 @@ type VpnState =
   | 'unconfigured'
   | 'disconnected'
   | 'opening'
-  | 'connected'
+  | 'connected-local'
+  | 'connected-teleport'
 
 type StatusResponse = {
   configured?: boolean
@@ -38,9 +43,12 @@ export default function VpnConnection({
   const [state, setState] =
     useState<VpnState>('checking')
   const [detail, setDetail] = useState(
-    'Checking local VPN status…',
+    'Checking site access…',
   )
+  const [isTeleportConfigured, setIsTeleportConfigured] =
+    useState<boolean | null>(null)
   const retryTimers = useRef<number[]>([])
+  const teleportLaunchRequested = useRef(false)
 
   const clearRetryTimers = useCallback(() => {
     retryTimers.current.forEach(timer =>
@@ -79,38 +87,96 @@ export default function VpnConnection({
       if (!status.configured) {
         setState('unconfigured')
         setDetail(
-          'No VPN profile is configured for this client.',
+          'No local Teleport profile is configured for this client.',
         )
         return
       }
 
       if (status.connected) {
-        setState('connected')
-        setDetail(
+        const latency =
           status.latencyMs !== undefined
-            ? `Client network reachable in ${status.latencyMs} ms`
-            : 'Client network is reachable',
-        )
+            ? ` (${status.latencyMs} ms)`
+            : ''
+
+        if (teleportLaunchRequested.current) {
+          setState('connected-teleport')
+          setDetail(
+            `Site reachable through UniFi Teleport${latency}`,
+          )
+        } else {
+          setState('connected-local')
+          setDetail(
+            `Site reachable directly from this computer${latency}`,
+          )
+        }
         return
       }
 
       setState('disconnected')
       setDetail(
         status.message ||
-          'Client network is not reachable',
+          'The client network is not reachable from this computer.',
       )
     } catch {
       setState('helper-unavailable')
       setDetail(
-        'The local Watchkeeper VPN helper is not running.',
+        'The local Watchkeeper access helper is not running.',
       )
     }
   }, [clientId, clientName])
 
   useEffect(() => {
+    let cancelled = false
+
+    async function loadAccessProvider() {
+      try {
+        const response = await fetch(
+          `/api/client-settings/${encodeURIComponent(clientId)}`,
+          {
+            headers: {
+              Accept: 'application/json',
+            },
+            cache: 'no-store',
+          },
+        )
+
+        if (!response.ok) {
+          throw new Error('Unable to load access provider')
+        }
+
+        const data =
+          (await response.json()) as ClientSettingsResponse
+        const settings = normaliseClientSettings(data.settings)
+
+        if (!cancelled) {
+          setIsTeleportConfigured(
+            settings.access.provider === 'unifi-teleport',
+          )
+        }
+      } catch {
+        if (!cancelled) {
+          setIsTeleportConfigured(false)
+        }
+      }
+    }
+
+    setIsTeleportConfigured(null)
+    void loadAccessProvider()
+
+    return () => {
+      cancelled = true
+    }
+  }, [clientId])
+
+  useEffect(() => {
+    if (!isTeleportConfigured) {
+      return
+    }
+
+    teleportLaunchRequested.current = false
     clearRetryTimers()
     setState('checking')
-    setDetail('Checking local VPN status…')
+    setDetail('Checking site access…')
     void checkStatus()
 
     const interval = window.setInterval(
@@ -125,9 +191,11 @@ export default function VpnConnection({
   }, [
     checkStatus,
     clearRetryTimers,
+    isTeleportConfigured,
   ])
 
   async function openVpnApplication() {
+    teleportLaunchRequested.current = true
     setState('opening')
     setDetail(
       'Opening WiFiman. Complete the Teleport connection there.',
@@ -182,9 +250,35 @@ export default function VpnConnection({
     }
   }
 
+  if (isTeleportConfigured === null) {
+    return (
+      <StaticConnectionRow
+        title="Access provider"
+        detail="Loading site access configuration…"
+        label="Checking…"
+        dotClass="vpn-status-dot-checking"
+      />
+    )
+  }
+
+  if (!isTeleportConfigured) {
+    return (
+      <StaticConnectionRow
+        title="Not configured"
+        detail="Choose an access provider in Site configuration."
+        label="Not configured"
+        dotClass="hero-status-dot-muted"
+      />
+    )
+  }
+
+  const isConnected =
+    state === 'connected-local' ||
+    state === 'connected-teleport'
+
   const dotClass = [
     'status-dot',
-    state === 'connected'
+    isConnected
       ? ''
       : state === 'opening' ||
         state === 'checking'
@@ -197,14 +291,16 @@ export default function VpnConnection({
     .join(' ')
 
   const label =
-    state === 'connected'
+    state === 'connected-local'
+      ? 'On site'
+      : state === 'connected-teleport'
       ? 'Connected'
       : state === 'opening'
       ? 'Opening…'
       : state === 'checking'
       ? 'Checking…'
       : state === 'unconfigured'
-      ? 'Not configured'
+      ? 'Profile missing'
       : state === 'helper-unavailable'
       ? 'Helper offline'
       : 'Disconnected'
@@ -213,14 +309,15 @@ export default function VpnConnection({
     state === 'checking' ||
     state === 'opening' ||
     state === 'helper-unavailable' ||
-    state === 'unconfigured'
+    state === 'unconfigured' ||
+    state === 'connected-local'
 
   return (
     <div className="hero-connection-row">
       <span className={dotClass} />
 
       <div className="hero-connection-copy">
-        <strong>Site VPN</strong>
+        <strong>UniFi Teleport</strong>
         <small>{detail}</small>
       </div>
 
@@ -241,15 +338,46 @@ export default function VpnConnection({
           onClick={() => void openVpnApplication()}
           title={
             state === 'helper-unavailable'
-              ? 'Install or start the local Watchkeeper VPN helper'
+              ? 'Install or start the local Watchkeeper access helper'
               : undefined
           }
         >
-          {state === 'connected'
+          {state === 'connected-local'
+            ? 'Connected locally'
+            : state === 'connected-teleport'
             ? 'Open WiFiman'
-            : 'Connect to site (VPN)'}
+            : 'Connect to site'}
         </button>
       </div>
+    </div>
+  )
+}
+
+type StaticConnectionRowProps = {
+  title: string
+  detail: string
+  label: string
+  dotClass: string
+}
+
+function StaticConnectionRow({
+  title,
+  detail,
+  label,
+  dotClass,
+}: StaticConnectionRowProps) {
+  return (
+    <div className="hero-connection-row">
+      <span className={`status-dot ${dotClass}`} />
+
+      <div className="hero-connection-copy">
+        <strong>{title}</strong>
+        <small>{detail}</small>
+      </div>
+
+      <span className="hero-connection-label">
+        {label}
+      </span>
     </div>
   )
 }
