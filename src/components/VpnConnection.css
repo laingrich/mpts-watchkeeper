@@ -10,7 +10,9 @@
   font-weight: 800;
 }
 
-.vpn-status-label.connected {
+.vpn-status-label.connected,
+.vpn-status-label.connected-local,
+.vpn-status-label.connected-teleport {
   color: #86efac;
 }
 
@@ -41,6 +43,42 @@
 .hero-vpn-button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
+}
+
+/*
+ * Site/reference name and timezone duplicated Jetbuilt data or were not
+ * reliable for mobile sites. Keep legacy stored values readable by older
+ * records, but remove the fields from the current configuration interface.
+ */
+.site-config-form
+  > .site-config-section:first-of-type
+  .site-config-grid.three
+  > .site-config-field:nth-child(2),
+.site-config-form
+  > .site-config-section:first-of-type
+  .site-config-grid.three
+  > .site-config-field:nth-child(3) {
+  display: none;
+}
+
+.site-config-form
+  > .site-config-section:first-of-type
+  .site-config-grid.three {
+  grid-template-columns: minmax(220px, 0.45fr) minmax(0, 1fr);
+}
+
+.site-config-form
+  > .site-config-section:first-of-type
+  .site-config-field.full-width {
+  grid-column: auto;
+}
+
+@media (max-width: 760px) {
+  .site-config-form
+    > .site-config-section:first-of-type
+    .site-config-grid.three {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
