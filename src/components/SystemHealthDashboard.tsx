@@ -23,8 +23,9 @@ export default function SystemHealthDashboard({
       monitoring={monitoring}
       discovery={
         discovery ?? {
-          enabled: false,
-          method: 'manual',
+          domotzEnabled: false,
+          unifiEnabled: false,
+          watchkeeperAgentEnabled: false,
           subnet: '',
         }
       }
