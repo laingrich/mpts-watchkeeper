@@ -120,7 +120,7 @@ export default function VpnConnection({
     } catch {
       setState('helper-unavailable')
       setDetail(
-        'The local Watchkeeper access helper is not running.',
+        'Automatic access checking is unavailable on this device. You may already be onsite or connected through Teleport.',
       )
     }
   }, [clientId, clientName])
@@ -240,12 +240,10 @@ export default function VpnConnection({
           ),
         )
       }
-    } catch (error) {
+    } catch {
       setState('helper-unavailable')
       setDetail(
-        error instanceof Error
-          ? error.message
-          : 'Unable to open WiFiman',
+        'Automatic access checking is unavailable on this device. Open WiFiman directly if you need to connect with Teleport.',
       )
     }
   }
@@ -283,8 +281,6 @@ export default function VpnConnection({
       : state === 'opening' ||
         state === 'checking'
       ? 'vpn-status-dot-checking'
-      : state === 'helper-unavailable'
-      ? 'vpn-status-dot-error'
       : 'hero-status-dot-muted',
   ]
     .filter(Boolean)
@@ -302,7 +298,7 @@ export default function VpnConnection({
       : state === 'unconfigured'
       ? 'Profile missing'
       : state === 'helper-unavailable'
-      ? 'Helper offline'
+      ? 'Access not checked'
       : 'Disconnected'
 
   const disabled =
@@ -338,7 +334,7 @@ export default function VpnConnection({
           onClick={() => void openVpnApplication()}
           title={
             state === 'helper-unavailable'
-              ? 'Install or start the local Watchkeeper access helper'
+              ? 'Open WiFiman directly if Teleport is required'
               : undefined
           }
         >
@@ -346,6 +342,8 @@ export default function VpnConnection({
             ? 'Connected locally'
             : state === 'connected-teleport'
             ? 'Open WiFiman'
+            : state === 'helper-unavailable'
+            ? 'Use device links'
             : 'Connect to site'}
         </button>
       </div>
