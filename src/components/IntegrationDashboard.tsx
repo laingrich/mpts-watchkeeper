@@ -12,202 +12,116 @@ type IntegrationDashboardProps = {
 
 type IntegrationState = 'connected' | 'configured' | 'not-configured'
 
-type IntegrationCardProps = {
-  eyebrow: string
-  title: string
+type SystemRowProps = {
+  name: string
+  purpose: string
   state: IntegrationState
   stateLabel: string
-  description: string
-  metrics: Array<{ label: string; value: string }>
-  actionLabel?: string
-  actionHref?: string
-  onAction?: () => void
+  summary: string
+  detail: string
 }
 
 export default function IntegrationDashboard({
   clientName,
-  configuredDeviceCount,
   monitoring,
   discovery,
   mode = 'overview',
-  onOpenDevices,
 }: IntegrationDashboardProps) {
   const domotzConfigured = monitoring.enabled && monitoring.domotzEnabled
   const unifiConfigured = discovery.enabled && discovery.method === 'unifi'
 
-  const heading =
-    mode === 'monitoring'
-      ? 'Monitoring'
-      : mode === 'network'
-        ? 'Network'
-        : 'Site operations'
+  const systems = [
+    {
+      name: 'Domotz',
+      purpose: 'Monitoring',
+      state: domotzConfigured ? 'configured' : 'not-configured',
+      stateLabel: domotzConfigured ? 'Configured' : 'Not configured',
+      summary: domotzConfigured
+        ? 'Selected as the monitoring source; live Collector, device and alert data still needs the API connection.'
+        : 'No Domotz monitoring source is configured for this site.',
+      detail: domotzConfigured
+        ? 'A future Domotz API connection will show the Collector state, important offline devices and active alert summaries here. Detailed diagnosis and alert management will continue in Domotz.'
+        : 'To prepare this site, an administrator will enable monitoring and select Domotz in Site configuration. Until that workflow is connected, Watchkeeper will show no invented monitoring values.',
+    },
+    {
+      name: 'UniFi',
+      purpose: 'Network',
+      state: unifiConfigured ? 'configured' : 'not-configured',
+      stateLabel: unifiConfigured ? 'Configured' : 'Not configured',
+      summary: unifiConfigured
+        ? 'Selected as the discovery source; switches, ports, clients and VLANs still need the API connection.'
+        : 'No UniFi network discovery source is configured for this site.',
+      detail: unifiConfigured
+        ? 'A future UniFi API connection will provide a read-only network summary and planned-versus-observed documentation. Network changes and detailed investigation will continue in UniFi.'
+        : 'To prepare this site, an administrator will enable discovery and select UniFi in Site configuration. Watchkeeper will then be ready to accept live network inventory when the API connector is added.',
+    },
+  ] as const
 
-  const description =
-    mode === 'monitoring'
-      ? 'A first point of contact for monitoring status. Detailed investigation and alert management remain in Domotz.'
-      : mode === 'network'
-        ? 'A concise view of network inventory and configuration status. Detailed configuration remains in UniFi.'
-        : 'Watchkeeper brings together status, site context and links to the specialist systems used to investigate and act.'
+  const visibleSystems = systems.filter(system => {
+    if (mode === 'monitoring') return system.purpose === 'Monitoring'
+    if (mode === 'network') return system.purpose === 'Network'
+    return true
+  })
 
   return (
-    <section className="integration-dashboard">
-      <header className="integration-dashboard-header">
+    <section className="panel integration-summary">
+      <header className="integration-summary-header">
         <div>
-          <p className="eyebrow">SINGLE PANE OF GLASS</p>
-          <h3>{heading}</h3>
-          <p>{description}</p>
+          <p className="eyebrow">SITE SYSTEMS</p>
+          <h3>Monitoring and network sources</h3>
+          <p>
+            Watchkeeper is the first point of contact for {clientName}; the
+            specialist services remain authoritative for investigation and
+            action.
+          </p>
         </div>
-
         <span className="integration-scope-badge">Read-only summary</span>
       </header>
 
-      <div className="integration-principle">
-        <strong>{clientName}</strong>
-        <span>
-          Watchkeeper summarises and links out; Domotz, UniFi, Jetbuilt and
-          SharePoint remain the authoritative services.
-        </span>
+      <div className="integration-system-list">
+        {visibleSystems.map(system => (
+          <SystemRow key={system.name} {...system} />
+        ))}
       </div>
 
-      {(mode === 'overview' || mode === 'monitoring') && (
-        <div className="integration-grid">
-          <IntegrationCard
-            eyebrow="MONITORING"
-            title="Domotz"
-            state={domotzConfigured ? 'configured' : 'not-configured'}
-            stateLabel={domotzConfigured ? 'Configured' : 'Not configured'}
-            description={
-              domotzConfigured
-                ? 'Domotz is selected as a monitoring source. Live API status and alerts are not connected yet.'
-                : 'Enable Domotz for this site before Watchkeeper can show Collector, device and alert summaries.'
-            }
-            metrics={[
-              {
-                label: 'Collector',
-                value: domotzConfigured ? 'Awaiting API' : 'Unavailable',
-              },
-              {
-                label: 'Active alerts',
-                value: domotzConfigured ? 'Awaiting API' : '—',
-              },
-              {
-                label: 'Device state',
-                value: domotzConfigured ? 'Awaiting API' : '—',
-              },
-            ]}
-          />
-
-          <IntegrationCard
-            eyebrow="SITE INVENTORY"
-            title="Watchkeeper devices"
-            state="connected"
-            stateLabel="Available"
-            description="Site identity, purpose, launcher links and design information are held in Watchkeeper."
-            metrics={[
-              { label: 'Configured devices', value: String(configuredDeviceCount) },
-              { label: 'Live reachability', value: 'Local helper / VPN' },
-              { label: 'Monitoring source', value: domotzConfigured ? 'Domotz planned' : 'Not linked' },
-            ]}
-            actionLabel="View devices"
-            onAction={onOpenDevices}
-          />
-        </div>
-      )}
-
-      {(mode === 'overview' || mode === 'network') && (
-        <div className="integration-grid">
-          <IntegrationCard
-            eyebrow="NETWORK"
-            title="UniFi"
-            state={unifiConfigured ? 'configured' : 'not-configured'}
-            stateLabel={unifiConfigured ? 'Configured' : 'Not configured'}
-            description={
-              unifiConfigured
-                ? 'UniFi is selected for discovery. Live switches, ports, clients and VLAN data are not connected yet.'
-                : 'Select UniFi discovery to prepare this site for network inventory and documentation synchronisation.'
-            }
-            metrics={[
-              {
-                label: 'Console',
-                value: unifiConfigured ? 'Awaiting API' : 'Unavailable',
-              },
-              {
-                label: 'Switches and APs',
-                value: unifiConfigured ? 'Awaiting API' : '—',
-              },
-              {
-                label: 'Configuration sync',
-                value: unifiConfigured ? 'Not run' : '—',
-              },
-            ]}
-          />
-
-          <IntegrationCard
-            eyebrow="DOCUMENTATION"
-            title="Planned vs observed"
-            state="configured"
-            stateLabel="Design stage"
-            description="Watchkeeper will retain planned devices, ports and VLANs, then compare them with the live UniFi inventory."
-            metrics={[
-              { label: 'Design records', value: 'Watchkeeper / import' },
-              { label: 'Observed network', value: unifiConfigured ? 'UniFi planned' : 'Not linked' },
-              { label: 'Discrepancies', value: 'Awaiting sync' },
-            ]}
-          />
-        </div>
-      )}
-
-      <footer className="integration-dashboard-footer">
-        No simulated operational readings are shown. Values marked “Awaiting API”
-        will be replaced only when a source integration is returning live data.
+      <footer className="integration-summary-footer">
+        Live values will appear only after a source API is connected. No
+        simulated device, alert or network readings are shown.
       </footer>
     </section>
   )
 }
 
-function IntegrationCard({
-  eyebrow,
-  title,
+function SystemRow({
+  name,
+  purpose,
   state,
   stateLabel,
-  description,
-  metrics,
-  actionLabel,
-  actionHref,
-  onAction,
-}: IntegrationCardProps) {
+  summary,
+  detail,
+}: SystemRowProps) {
   return (
-    <article className="panel integration-card">
-      <header>
+    <article className="integration-system-row">
+      <div className="integration-system-identity">
+        <span className={`integration-system-dot ${state}`} />
         <div>
-          <p className="eyebrow">{eyebrow}</p>
-          <h4>{title}</h4>
+          <small>{purpose}</small>
+          <strong>{name}</strong>
         </div>
-        <span className={`integration-state ${state}`}>{stateLabel}</span>
-      </header>
+      </div>
 
-      <p className="integration-card-description">{description}</p>
+      <p>{summary}</p>
 
-      <dl className="integration-metrics">
-        {metrics.map(metric => (
-          <div key={metric.label}>
-            <dt>{metric.label}</dt>
-            <dd>{metric.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <span className={`integration-state ${state}`}>{stateLabel}</span>
 
-      {actionHref && actionLabel && (
-        <a href={actionHref} target="_blank" rel="noreferrer">
-          {actionLabel}
-        </a>
-      )}
-
-      {onAction && actionLabel && (
-        <button type="button" onClick={onAction}>
-          {actionLabel}
-        </button>
-      )}
+      <details className="integration-guidance">
+        <summary>
+          {state === 'not-configured'
+            ? `How to configure ${name}`
+            : `What happens next`}
+        </summary>
+        <p>{detail}</p>
+      </details>
     </article>
   )
 }
