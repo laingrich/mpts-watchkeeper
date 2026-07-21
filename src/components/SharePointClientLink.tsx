@@ -2,6 +2,7 @@ import {
   useEffect,
   useState,
   type FormEvent,
+  type ReactNode,
 } from 'react'
 import {
   normaliseClientSettings,
@@ -236,7 +237,7 @@ type DocumentSourceCardProps = {
   openLabel: string
   emptyMessage: string
   description: string
-  note: React.ReactNode
+  note: ReactNode
   editingSource: DocumentSource | null
   draftUrl: string
   isSaving: boolean
