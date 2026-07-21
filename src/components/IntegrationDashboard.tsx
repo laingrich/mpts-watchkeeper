@@ -27,8 +27,8 @@ export default function IntegrationDashboard({
   discovery,
   mode = 'overview',
 }: IntegrationDashboardProps) {
-  const domotzConfigured = monitoring.enabled && monitoring.domotzEnabled
-  const unifiConfigured = discovery.enabled && discovery.method === 'unifi'
+  const domotzConfigured = monitoring.source === 'domotz'
+  const unifiConfigured = discovery.unifiEnabled
 
   const systems = [
     {
@@ -37,11 +37,11 @@ export default function IntegrationDashboard({
       state: domotzConfigured ? 'configured' : 'not-configured',
       stateLabel: domotzConfigured ? 'Configured' : 'Not configured',
       summary: domotzConfigured
-        ? 'Selected as the monitoring source; live Collector, device and alert data still needs the API connection.'
-        : 'No Domotz monitoring source is configured for this site.',
+        ? 'Selected as the operational monitoring source; the live Collector, device and alert connection is still to be added.'
+        : 'Domotz is not selected as the operational monitoring source for this site.',
       detail: domotzConfigured
-        ? 'A future Domotz API connection will show the Collector state, important offline devices and active alert summaries here. Detailed diagnosis and alert management will continue in Domotz.'
-        : 'To prepare this site, an administrator will enable monitoring and select Domotz in Site configuration. Until that workflow is connected, Watchkeeper will show no invented monitoring values.',
+        ? 'The next integration step will associate this client with its Domotz Agent. Watchkeeper will then show a read-only summary while alert rules, history and diagnosis remain in Domotz.'
+        : 'In Site configuration, choose Domotz under Operational monitoring source. The selector records the intended authority now; a later connection step will associate the correct Domotz Agent.',
     },
     {
       name: 'UniFi',
@@ -49,11 +49,11 @@ export default function IntegrationDashboard({
       state: unifiConfigured ? 'configured' : 'not-configured',
       stateLabel: unifiConfigured ? 'Configured' : 'Not configured',
       summary: unifiConfigured
-        ? 'Selected as the discovery source; switches, ports, clients and VLANs still need the API connection.'
-        : 'No UniFi network discovery source is configured for this site.',
+        ? 'Enabled as a read-only network data source; switches, ports, clients and VLANs still need the API connection.'
+        : 'UniFi network configuration is not enabled as an inventory source for this site.',
       detail: unifiConfigured
-        ? 'A future UniFi API connection will provide a read-only network summary and planned-versus-observed documentation. Network changes and detailed investigation will continue in UniFi.'
-        : 'To prepare this site, an administrator will enable discovery and select UniFi in Site configuration. Watchkeeper will then be ready to accept live network inventory when the API connector is added.',
+        ? 'The next integration step will associate the correct UniFi site and import a read-only network summary. Network changes and detailed investigation will continue in UniFi.'
+        : 'In Site configuration, enable Use UniFi data under Inventory & Network. This prepares the site for a later controller association without claiming that live data is available.',
     },
   ] as const
 
@@ -118,7 +118,7 @@ function SystemRow({
         <summary>
           {state === 'not-configured'
             ? `How to configure ${name}`
-            : `What happens next`}
+            : 'What happens next'}
         </summary>
         <p>{detail}</p>
       </details>
