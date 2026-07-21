@@ -62,7 +62,7 @@ app.http('clientSettings', {
 
       if (
         !hasAnyRole(principal, adminRoles) &&
-        !isSharePointOnlyUpdate(body)
+        !isDocumentLinkOnlyUpdate(body)
       ) {
         return json(403, {
           error:
@@ -119,7 +119,7 @@ app.http('clientSettings', {
   }
 })
 
-function isSharePointOnlyUpdate(value) {
+function isDocumentLinkOnlyUpdate(value) {
   if (
     !value ||
     typeof value !== 'object' ||
@@ -129,10 +129,14 @@ function isSharePointOnlyUpdate(value) {
   }
 
   const keys = Object.keys(value)
+  const allowedKeys = new Set([
+    'sharePointUrl',
+    'arturaUrl'
+  ])
 
   return (
-    keys.length === 1 &&
-    keys[0] === 'sharePointUrl'
+    keys.length > 0 &&
+    keys.every(key => allowedKeys.has(key))
   )
 }
 
