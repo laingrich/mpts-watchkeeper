@@ -11,7 +11,7 @@ import {
   type AccessProvider,
   type ClientSettings,
   type ClientSettingsResponse,
-  type DiscoveryMethod,
+  type MonitoringSource,
   type RemoteSupportMethod,
   type SiteType,
 } from '../clientSettings'
@@ -35,11 +35,31 @@ const siteTypes: [SiteType, string][] = [
   ['other', 'Other'],
 ]
 
-const discoveryMethods: [DiscoveryMethod, string][] = [
-  ['manual', 'Manual device list'],
-  ['domotz', 'Domotz'],
-  ['unifi', 'UniFi controller'],
-  ['watchkeeper-agent', 'Watchkeeper onsite agent'],
+const monitoringSources: Array<{
+  value: MonitoringSource
+  label: string
+  description: string
+}> = [
+  {
+    value: 'none',
+    label: 'Not monitored',
+    description: 'Watchkeeper shows no operational health information for this site.',
+  },
+  {
+    value: 'domotz',
+    label: 'Domotz',
+    description: 'Domotz remains authoritative for availability, alerts and detailed investigation.',
+  },
+  {
+    value: 'watchkeeper-agent',
+    label: 'Watchkeeper onsite agent',
+    description: 'The onsite agent performs selected checks and returns a summary to Watchkeeper.',
+  },
+  {
+    value: 'basic-checks',
+    label: 'Basic Watchkeeper checks',
+    description: 'Watchkeeper performs simple reachability checks where no monitoring platform is available.',
+  },
 ]
 
 const remoteSupportMethods: [RemoteSupportMethod, string][] = [
@@ -60,10 +80,8 @@ export default function SiteConfiguration({
     createDefaultClientSettings,
   )
   const [etag, setEtag] = useState<string | null>(null)
-  const [updatedAt, setUpdatedAt] =
-    useState<string | null>(null)
-  const [updatedBy, setUpdatedBy] =
-    useState<string | null>(null)
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null)
+  const [updatedBy, setUpdatedBy] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
@@ -83,9 +101,7 @@ export default function SiteConfiguration({
       const response = await fetch(
         `/api/client-settings/${encodeURIComponent(clientId)}`,
         {
-          headers: {
-            Accept: 'application/json',
-          },
+          headers: { Accept: 'application/json' },
           cache: 'no-store',
         },
       )
@@ -94,8 +110,7 @@ export default function SiteConfiguration({
         throw new Error(await readError(response))
       }
 
-      const data =
-        (await response.json()) as ClientSettingsResponse
+      const data = (await response.json()) as ClientSettingsResponse
       const normalised = normaliseClientSettings(data.settings)
 
       setSettings(normalised)
@@ -123,9 +138,7 @@ export default function SiteConfiguration({
     setSuccess(null)
   }
 
-  async function saveSettings(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSaving(true)
     setError(null)
@@ -137,9 +150,7 @@ export default function SiteConfiguration({
         'Content-Type': 'application/json',
       }
 
-      if (etag) {
-        headers['If-Match'] = etag
-      }
+      if (etag) headers['If-Match'] = etag
 
       const response = await fetch(
         `/api/client-settings/${encodeURIComponent(clientId)}`,
@@ -160,8 +171,7 @@ export default function SiteConfiguration({
         throw new Error(await readError(response))
       }
 
-      const data =
-        (await response.json()) as ClientSettingsResponse
+      const data = (await response.json()) as ClientSettingsResponse
       const normalised = normaliseClientSettings(data.settings)
 
       setSettings(normalised)
@@ -191,6 +201,10 @@ export default function SiteConfiguration({
     )
   }
 
+  const usesWatchkeeperChecks =
+    settings.monitoring.source === 'watchkeeper-agent' ||
+    settings.monitoring.source === 'basic-checks'
+
   return (
     <section className="site-config-page">
       <header className="site-config-header">
@@ -198,7 +212,7 @@ export default function SiteConfiguration({
           <p className="eyebrow">SITE CONFIGURATION</p>
           <h3>{clientName}</h3>
           <p>
-            Configure access, monitoring and support behaviour for this
+            Configure access, integrations and support behaviour for this
             Jetbuilt client.
           </p>
         </div>
@@ -231,12 +245,12 @@ export default function SiteConfiguration({
           <div className="site-config-section-heading">
             <div>
               <p className="eyebrow">SITE</p>
-              <h4>Site metadata</h4>
+              <h4>Site details</h4>
             </div>
-            <span>Basic onboarding information</span>
+            <span>Context held by Watchkeeper</span>
           </div>
 
-          <div className="site-config-grid three">
+          <div className="site-config-grid two">
             <label className="site-config-field">
               <span>Site type</span>
               <select
@@ -260,40 +274,6 @@ export default function SiteConfiguration({
             </label>
 
             <label className="site-config-field">
-              <span>Site/reference name</span>
-              <input
-                value={settings.site.reference}
-                placeholder="Property, vessel or internal reference"
-                onChange={event =>
-                  updateSettings(current => ({
-                    ...current,
-                    site: {
-                      ...current.site,
-                      reference: event.target.value,
-                    },
-                  }))
-                }
-              />
-            </label>
-
-            <label className="site-config-field">
-              <span>Timezone</span>
-              <input
-                value={settings.site.timezone}
-                placeholder="Europe/London"
-                onChange={event =>
-                  updateSettings(current => ({
-                    ...current,
-                    site: {
-                      ...current.site,
-                      timezone: event.target.value,
-                    },
-                  }))
-                }
-              />
-            </label>
-
-            <label className="site-config-field full-width">
               <span>Technical notes</span>
               <textarea
                 value={settings.site.notes}
@@ -362,8 +342,8 @@ export default function SiteConfiguration({
                 }
               />
               <small>
-                A unique local target that can confirm the correct site is
-                reachable.
+                A unique local target that confirms the correct site is
+                reachable after local or VPN access is established.
               </small>
             </label>
 
@@ -390,161 +370,235 @@ export default function SiteConfiguration({
           <div className="site-config-section-heading">
             <div>
               <p className="eyebrow">MONITORING</p>
-              <h4>Health checks</h4>
+              <h4>Operational monitoring source</h4>
             </div>
-            <Toggle
-              checked={settings.monitoring.enabled}
-              label="Monitoring enabled"
-              onChange={checked =>
-                updateSettings(current => ({
-                  ...current,
-                  monitoring: {
-                    ...current.monitoring,
-                    enabled: checked,
-                  },
-                }))
-              }
-            />
+            <span>One authoritative health source</span>
           </div>
 
-          <div className="site-config-grid three">
-            <label className="site-config-field">
-              <span>Poll interval</span>
-              <select
-                value={settings.monitoring.pollIntervalMinutes}
-                disabled={!settings.monitoring.enabled}
-                onChange={event =>
+          <div className="site-config-provider-grid monitoring-source-grid">
+            {monitoringSources.map(source => (
+              <button
+                className={
+                  settings.monitoring.source === source.value
+                    ? 'selected'
+                    : ''
+                }
+                key={source.value}
+                type="button"
+                onClick={() =>
                   updateSettings(current => ({
                     ...current,
                     monitoring: {
                       ...current.monitoring,
-                      pollIntervalMinutes: Number(event.target.value),
+                      source: source.value,
                     },
                   }))
                 }
               >
-                <option value={1}>Every minute</option>
-                <option value={5}>Every 5 minutes</option>
-                <option value={15}>Every 15 minutes</option>
-                <option value={30}>Every 30 minutes</option>
-                <option value={60}>Every hour</option>
-              </select>
-            </label>
-
-            <label className="site-config-field">
-              <span>Monitoring probe target</span>
-              <input
-                disabled={!settings.monitoring.enabled}
-                value={settings.monitoring.probeTarget}
-                placeholder="Optional site health endpoint or IP"
-                onChange={event =>
-                  updateSettings(current => ({
-                    ...current,
-                    monitoring: {
-                      ...current.monitoring,
-                      probeTarget: event.target.value,
-                    },
-                  }))
-                }
-              />
-            </label>
-
-            <div className="site-config-check-list">
-              <Toggle
-                checked={settings.monitoring.internetCheckEnabled}
-                disabled={!settings.monitoring.enabled}
-                label="Internet availability"
-                onChange={checked =>
-                  updateSettings(current => ({
-                    ...current,
-                    monitoring: {
-                      ...current.monitoring,
-                      internetCheckEnabled: checked,
-                    },
-                  }))
-                }
-              />
-              <Toggle
-                checked={settings.monitoring.coreDeviceChecksEnabled}
-                disabled={!settings.monitoring.enabled}
-                label="Core device checks"
-                onChange={checked =>
-                  updateSettings(current => ({
-                    ...current,
-                    monitoring: {
-                      ...current.monitoring,
-                      coreDeviceChecksEnabled: checked,
-                    },
-                  }))
-                }
-              />
-              <Toggle
-                checked={settings.monitoring.domotzEnabled}
-                disabled={!settings.monitoring.enabled}
-                label="Domotz source available"
-                onChange={checked =>
-                  updateSettings(current => ({
-                    ...current,
-                    monitoring: {
-                      ...current.monitoring,
-                      domotzEnabled: checked,
-                    },
-                  }))
-                }
-              />
-            </div>
+                <strong>{source.label}</strong>
+                <small>{source.description}</small>
+              </button>
+            ))}
           </div>
+
+          {settings.monitoring.source === 'domotz' && (
+            <div className="site-config-guidance">
+              <strong>Domotz is the operational authority.</strong>
+              <p>
+                Watchkeeper will show Collector state, important device status
+                and alert summaries after the API connection is added. Alert
+                rules, history and investigation remain in Domotz.
+              </p>
+              <details>
+                <summary>How the Domotz connection will be completed</summary>
+                <p>
+                  A future integration setup will select the Domotz Agent for
+                  this client and store its external identifier. No credentials
+                  or simulated readings are stored by this selector today.
+                </p>
+              </details>
+            </div>
+          )}
+
+          {settings.monitoring.source === 'none' && (
+            <div className="site-config-guidance muted">
+              <strong>No operational monitoring source selected.</strong>
+              <p>
+                Watchkeeper will continue to provide site information, access
+                links and documentation, but it will not claim that the site or
+                its devices are healthy.
+              </p>
+            </div>
+          )}
+
+          {usesWatchkeeperChecks && (
+            <div className="site-config-grid three">
+              <label className="site-config-field">
+                <span>Poll interval</span>
+                <select
+                  value={settings.monitoring.pollIntervalMinutes}
+                  onChange={event =>
+                    updateSettings(current => ({
+                      ...current,
+                      monitoring: {
+                        ...current.monitoring,
+                        pollIntervalMinutes: Number(event.target.value),
+                      },
+                    }))
+                  }
+                >
+                  <option value={1}>Every minute</option>
+                  <option value={5}>Every 5 minutes</option>
+                  <option value={15}>Every 15 minutes</option>
+                  <option value={30}>Every 30 minutes</option>
+                  <option value={60}>Every hour</option>
+                </select>
+              </label>
+
+              <label className="site-config-field">
+                <span>Monitoring probe target</span>
+                <input
+                  value={settings.monitoring.probeTarget}
+                  placeholder="Optional site health endpoint or IP"
+                  onChange={event =>
+                    updateSettings(current => ({
+                      ...current,
+                      monitoring: {
+                        ...current.monitoring,
+                        probeTarget: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </label>
+
+              <div className="site-config-check-list">
+                <Toggle
+                  checked={settings.monitoring.internetCheckEnabled}
+                  label="Internet availability"
+                  onChange={checked =>
+                    updateSettings(current => ({
+                      ...current,
+                      monitoring: {
+                        ...current.monitoring,
+                        internetCheckEnabled: checked,
+                      },
+                    }))
+                  }
+                />
+                <Toggle
+                  checked={settings.monitoring.coreDeviceChecksEnabled}
+                  label="Core device checks"
+                  onChange={checked =>
+                    updateSettings(current => ({
+                      ...current,
+                      monitoring: {
+                        ...current.monitoring,
+                        coreDeviceChecksEnabled: checked,
+                      },
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="panel site-config-section">
           <div className="site-config-section-heading">
             <div>
-              <p className="eyebrow">DISCOVERY</p>
-              <h4>Device discovery</h4>
+              <p className="eyebrow">INVENTORY &amp; NETWORK</p>
+              <h4>Data sources</h4>
             </div>
-            <Toggle
-              checked={settings.discovery.enabled}
-              label="Discovery enabled"
-              onChange={checked =>
-                updateSettings(current => ({
-                  ...current,
-                  discovery: {
-                    ...current.discovery,
-                    enabled: checked,
-                  },
-                }))
-              }
-            />
+            <span>Multiple sources can work together</span>
           </div>
 
-          <div className="site-config-grid two">
-            <label className="site-config-field">
-              <span>Discovery source</span>
-              <select
-                disabled={!settings.discovery.enabled}
-                value={settings.discovery.method}
-                onChange={event =>
+          <div className="site-config-source-grid">
+            <article className="site-config-source-card fixed">
+              <div>
+                <strong>Watchkeeper planned inventory</strong>
+                <small>
+                  Device purpose, room, rack, cable, design intent and launcher
+                  links are maintained in Watchkeeper.
+                </small>
+              </div>
+              <span>Always available</span>
+            </article>
+
+            <article className="site-config-source-card">
+              <div>
+                <strong>Domotz device inventory</strong>
+                <small>
+                  Adds cross-vendor device identity and observed network state.
+                  This is separate from selecting Domotz as the monitoring source.
+                </small>
+              </div>
+              <Toggle
+                checked={settings.discovery.domotzEnabled}
+                label="Use Domotz inventory"
+                onChange={checked =>
                   updateSettings(current => ({
                     ...current,
                     discovery: {
                       ...current.discovery,
-                      method: event.target.value as DiscoveryMethod,
+                      domotzEnabled: checked,
                     },
                   }))
                 }
-              >
-                {discoveryMethods.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </article>
 
+            <article className="site-config-source-card">
+              <div>
+                <strong>UniFi network configuration</strong>
+                <small>
+                  Adds gateways, switches, access points, VLANs, ports and
+                  connected clients for read-only documentation.
+                </small>
+              </div>
+              <Toggle
+                checked={settings.discovery.unifiEnabled}
+                label="Use UniFi data"
+                onChange={checked =>
+                  updateSettings(current => ({
+                    ...current,
+                    discovery: {
+                      ...current.discovery,
+                      unifiEnabled: checked,
+                    },
+                  }))
+                }
+              />
+            </article>
+
+            <article className="site-config-source-card">
+              <div>
+                <strong>Watchkeeper onsite discovery</strong>
+                <small>
+                  Allows an onsite agent to supplement sites without sufficient
+                  Domotz or UniFi inventory coverage.
+                </small>
+              </div>
+              <Toggle
+                checked={settings.discovery.watchkeeperAgentEnabled}
+                label="Use onsite discovery"
+                onChange={checked =>
+                  updateSettings(current => ({
+                    ...current,
+                    discovery: {
+                      ...current.discovery,
+                      watchkeeperAgentEnabled: checked,
+                    },
+                  }))
+                }
+              />
+            </article>
+          </div>
+
+          {settings.discovery.watchkeeperAgentEnabled && (
             <label className="site-config-field">
-              <span>Primary LAN subnet</span>
+              <span>Agent scan subnet</span>
               <input
-                disabled={!settings.discovery.enabled}
                 value={settings.discovery.subnet}
                 placeholder="For example 192.168.2.0/24"
                 onChange={event =>
@@ -557,8 +611,21 @@ export default function SiteConfiguration({
                   }))
                 }
               />
+              <small>
+                This subnet is used only by the onsite discovery agent. UniFi
+                and Domotz provide their own network scope.
+              </small>
             </label>
-          </div>
+          )}
+
+          <details className="site-config-guidance compact">
+            <summary>How the sources are reconciled</summary>
+            <p>
+              Watchkeeper links records by confirmed external identifiers, MAC
+              address and serial number. It retains planned and offline devices,
+              while live state remains owned by Domotz or UniFi.
+            </p>
+          </details>
         </section>
 
         <section className="panel site-config-section">
@@ -595,9 +662,7 @@ export default function SiteConfiguration({
 
             <div className="site-config-check-list single">
               <Toggle
-                checked={
-                  settings.remoteSupport.clientApprovalRequired
-                }
+                checked={settings.remoteSupport.clientApprovalRequired}
                 label="Client approval required"
                 onChange={checked =>
                   updateSettings(current => ({
@@ -696,25 +761,42 @@ export default function SiteConfiguration({
           <div className="site-config-section-heading">
             <div>
               <p className="eyebrow">DOCUMENTATION</p>
-              <h4>SharePoint folder</h4>
+              <h4>Document sources</h4>
             </div>
             <span>Also editable from the Documents tab</span>
           </div>
 
-          <label className="site-config-field">
-            <span>SharePoint folder URL</span>
-            <input
-              type="url"
-              value={settings.sharePointUrl}
-              placeholder="https://tenant.sharepoint.com/sites/..."
-              onChange={event =>
-                updateSettings(current => ({
-                  ...current,
-                  sharePointUrl: event.target.value,
-                }))
-              }
-            />
-          </label>
+          <div className="site-config-grid two">
+            <label className="site-config-field">
+              <span>SharePoint folder URL</span>
+              <input
+                type="url"
+                value={settings.sharePointUrl}
+                placeholder="https://tenant.sharepoint.com/sites/..."
+                onChange={event =>
+                  updateSettings(current => ({
+                    ...current,
+                    sharePointUrl: event.target.value,
+                  }))
+                }
+              />
+            </label>
+
+            <label className="site-config-field">
+              <span>Artura project URL</span>
+              <input
+                type="url"
+                value={settings.arturaUrl}
+                placeholder="https://app.artura.io"
+                onChange={event =>
+                  updateSettings(current => ({
+                    ...current,
+                    arturaUrl: event.target.value,
+                  }))
+                }
+              />
+            </label>
+          </div>
         </section>
 
         <footer className="site-config-actions">

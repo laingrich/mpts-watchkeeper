@@ -8,9 +8,7 @@ import UserMenu, { type ClientPrincipal } from './UserMenu'
 import DeviceLauncher from './components/DeviceLauncher'
 import ClientPicker from './components/ClientPicker'
 import SharePointClientLink from './components/SharePointClientLink'
-
 import VpnConnection from './components/VpnConnection'
-
 import SystemHealthDashboard from './components/SystemHealthDashboard'
 import IssueManagement from './components/IssueManagement'
 import ServiceReportForm from './components/ServiceReportForm'
@@ -70,9 +68,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!selectedClientId) {
-      return
-    }
+    if (!selectedClientId) return
 
     setClientSettings(createDefaultClientSettings())
     void loadDeviceCount(selectedClientId)
@@ -87,19 +83,13 @@ export default function App() {
       const endpoint = forceRefresh
         ? '/api/clients?refresh=true'
         : '/api/clients'
-
       const response = await fetch(endpoint, {
-        headers: {
-          Accept: 'application/json',
-        },
+        headers: { Accept: 'application/json' },
       })
 
-      if (!response.ok) {
-        throw new Error(await readError(response))
-      }
+      if (!response.ok) throw new Error(await readError(response))
 
       const data = (await response.json()) as ClientsResponse
-
       if (!Array.isArray(data.clients)) {
         throw new Error('Jetbuilt returned invalid client data')
       }
@@ -108,13 +98,11 @@ export default function App() {
       setFetchedAt(data.fetchedAt)
 
       if (data.clients.length > 0) {
-        setSelectedClientId(currentId => {
-          const stillExists = data.clients.some(
-            client => client.id === currentId,
-          )
-
-          return stillExists ? currentId : data.clients[0].id
-        })
+        setSelectedClientId(currentId =>
+          data.clients.some(client => client.id === currentId)
+            ? currentId
+            : data.clients[0].id,
+        )
       }
     } catch (loadError) {
       setError(
@@ -131,39 +119,23 @@ export default function App() {
     try {
       const response = await fetch(
         `/api/device-config/${encodeURIComponent(clientId)}`,
-        {
-          headers: {
-            Accept: 'application/json',
-          },
-        },
+        { headers: { Accept: 'application/json' } },
       )
 
       if (response.status === 404) {
-        setDeviceCounts(current => ({
-          ...current,
-          [clientId]: 0,
-        }))
+        setDeviceCounts(current => ({ ...current, [clientId]: 0 }))
         return
       }
-
-      if (!response.ok) {
-        return
-      }
+      if (!response.ok) return
 
       const data = (await response.json()) as {
-        config?: {
-          devices?: unknown[]
-        }
+        config?: { devices?: unknown[] }
       }
-
       const count = Array.isArray(data.config?.devices)
         ? data.config.devices.length
         : 0
 
-      setDeviceCounts(current => ({
-        ...current,
-        [clientId]: count,
-      }))
+      setDeviceCounts(current => ({ ...current, [clientId]: count }))
     } catch {
       // Keep the existing displayed count if the request fails.
     }
@@ -174,19 +146,13 @@ export default function App() {
       const response = await fetch(
         `/api/client-settings/${encodeURIComponent(clientId)}`,
         {
-          headers: {
-            Accept: 'application/json',
-          },
+          headers: { Accept: 'application/json' },
           cache: 'no-store',
         },
       )
+      if (!response.ok) return
 
-      if (!response.ok) {
-        return
-      }
-
-      const data =
-        (await response.json()) as ClientSettingsResponse
+      const data = (await response.json()) as ClientSettingsResponse
       setClientSettings(normaliseClientSettings(data.settings))
     } catch {
       // The page remains usable with default settings.
@@ -195,9 +161,7 @@ export default function App() {
 
   const client = useMemo(
     () =>
-      clientList.find(
-        item => item.id === selectedClientId,
-      ) ??
+      clientList.find(item => item.id === selectedClientId) ??
       clientList[0] ??
       null,
     [clientList, selectedClientId],
@@ -205,7 +169,6 @@ export default function App() {
 
   const isAdmin =
     currentUser?.userRoles.includes('watchkeeper_admin') ?? false
-
   const visibleTabs = isAdmin
     ? tabs
     : tabs.filter(item => item !== 'Site configuration')
@@ -232,7 +195,6 @@ export default function App() {
         <section className="panel empty-state">
           <h3>Unable to load clients</h3>
           <p>{error}</p>
-
           <button
             className="retry-button"
             type="button"
@@ -251,16 +213,15 @@ export default function App() {
         <section className="panel empty-state">
           <h3>No Jetbuilt clients found</h3>
           <p>
-            Watchkeeper could not find any clients in the connected
-            Jetbuilt account.
+            Watchkeeper could not find any clients in the connected Jetbuilt
+            account.
           </p>
         </section>
       </PageShell>
     )
   }
 
-  const launcherDeviceCount =
-    deviceCounts[client.id] ?? 0
+  const launcherDeviceCount = deviceCounts[client.id] ?? 0
 
   return (
     <div className="app-shell">
@@ -278,7 +239,6 @@ export default function App() {
             selectedClientId={selectedClientId}
             onChange={changeClient}
           />
-
           <UserMenu onUserLoaded={setCurrentUser} />
         </div>
       </header>
@@ -322,9 +282,7 @@ export default function App() {
                 <p className="eyebrow">DEVICES</p>
                 <h3>{launcherDeviceCount}</h3>
                 <p>Configured Watchkeeper devices</p>
-                <span className="overview-card-link">
-                  View devices →
-                </span>
+                <span className="overview-card-link">View devices →</span>
               </button>
 
               <button
@@ -333,11 +291,9 @@ export default function App() {
                 onClick={() => setTab('Documents')}
               >
                 <p className="eyebrow">DOCUMENTS</p>
-                <h3>SharePoint</h3>
-                <p>Client documents and site information</p>
-                <span className="overview-card-link">
-                  View documents →
-                </span>
+                <h3>SharePoint + Artura</h3>
+                <p>Project files, site records and engineering information</p>
+                <span className="overview-card-link">View documents →</span>
               </button>
 
               <button
@@ -348,9 +304,7 @@ export default function App() {
                 <p className="eyebrow">OPEN ISSUES</p>
                 <h3>0</h3>
                 <p>Mock Jetbuilt issue workflow available</p>
-                <span className="overview-card-link">
-                  View issues →
-                </span>
+                <span className="overview-card-link">View issues →</span>
               </button>
             </section>
 
@@ -359,6 +313,7 @@ export default function App() {
               configuredDeviceCount={launcherDeviceCount}
               onOpenDevices={() => setTab('Devices')}
               monitoring={clientSettings.monitoring}
+              discovery={clientSettings.discovery}
             />
           </div>
         )}
@@ -432,7 +387,6 @@ function ConnectionsCard({
 
       <div className="hero-connection-row">
         <span className="status-dot" />
-
         <div className="hero-connection-copy">
           <strong>Jetbuilt</strong>
           <small>
@@ -441,10 +395,7 @@ function ConnectionsCard({
               : 'Client list connected'}
           </small>
         </div>
-
-        <span className="hero-connection-label">
-          Connected
-        </span>
+        <span className="hero-connection-label">Connected</span>
       </div>
 
       <AccessConnection
@@ -467,16 +418,8 @@ function AccessConnection({
   clientName,
   provider,
 }: AccessConnectionProps) {
-  if (
-    provider === 'not-configured' ||
-    provider === 'unifi-teleport'
-  ) {
-    return (
-      <VpnConnection
-        clientId={clientId}
-        clientName={clientName}
-      />
-    )
+  if (provider === 'not-configured' || provider === 'unifi-teleport') {
+    return <VpnConnection clientId={clientId} clientName={clientName} />
   }
 
   const status = accessProviderStatus(provider)
@@ -484,15 +427,11 @@ function AccessConnection({
   return (
     <div className="hero-connection-row">
       <span className={`status-dot ${status.dotClass}`} />
-
       <div className="hero-connection-copy">
         <strong>{accessProviderLabels[provider]}</strong>
         <small>{accessProviderDescriptions[provider]}</small>
       </div>
-
-      <span className="hero-connection-label">
-        {status.label}
-      </span>
+      <span className="hero-connection-label">{status.label}</span>
     </div>
   )
 }
@@ -500,30 +439,14 @@ function AccessConnection({
 function accessProviderStatus(provider: AccessProvider) {
   switch (provider) {
     case 'local-network':
-      return {
-        label: 'Local only',
-        dotClass: 'hero-status-dot-muted',
-      }
+      return { label: 'Local only', dotClass: 'hero-status-dot-muted' }
     case 'watchkeeper-pc':
-      return {
-        label: 'Configured',
-        dotClass: 'status-dot-pending',
-      }
     case 'unifi-wireguard':
-      return {
-        label: 'Configured',
-        dotClass: 'status-dot-pending',
-      }
+      return { label: 'Configured', dotClass: 'status-dot-pending' }
     case 'attended-support':
-      return {
-        label: 'Approval required',
-        dotClass: 'status-dot-pending',
-      }
+      return { label: 'Approval required', dotClass: 'status-dot-pending' }
     default:
-      return {
-        label: 'Unavailable',
-        dotClass: 'hero-status-dot-muted',
-      }
+      return { label: 'Unavailable', dotClass: 'hero-status-dot-muted' }
   }
 }
 
@@ -532,10 +455,7 @@ type PageShellProps = {
   onUserLoaded: (user: ClientPrincipal | null) => void
 }
 
-function PageShell({
-  children,
-  onUserLoaded,
-}: PageShellProps) {
+function PageShell({ children, onUserLoaded }: PageShellProps) {
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -545,10 +465,8 @@ function PageShell({
           </div>
           <h1>Watchkeeper</h1>
         </div>
-
         <UserMenu onUserLoaded={onUserLoaded} />
       </header>
-
       <main>{children}</main>
     </div>
   )
@@ -556,10 +474,7 @@ function PageShell({
 
 async function readError(response: Response) {
   try {
-    const data = (await response.json()) as {
-      error?: string
-    }
-
+    const data = (await response.json()) as { error?: string }
     return data.error || `Request failed with status ${response.status}`
   } catch {
     return `Request failed with status ${response.status}`
@@ -568,10 +483,5 @@ async function readError(response: Response) {
 
 function formatDate(value: string) {
   const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleString()
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }

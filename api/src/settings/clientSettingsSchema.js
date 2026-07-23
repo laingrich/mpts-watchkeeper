@@ -16,11 +16,11 @@ const accessProviders = new Set([
   'none'
 ])
 
-const discoveryMethods = new Set([
-  'manual',
+const monitoringSources = new Set([
+  'none',
   'domotz',
-  'unifi',
-  'watchkeeper-agent'
+  'watchkeeper-agent',
+  'basic-checks'
 ])
 
 const remoteSupportMethods = new Set([
@@ -34,8 +34,9 @@ const remoteSupportMethods = new Set([
 
 function defaultClientSettings() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sharePointUrl: '',
+    arturaUrl: 'https://app.artura.io',
     site: {
       type: 'not-set',
       reference: '',
@@ -48,16 +49,16 @@ function defaultClientSettings() {
       notes: ''
     },
     monitoring: {
-      enabled: false,
+      source: 'none',
       pollIntervalMinutes: 5,
       internetCheckEnabled: true,
       coreDeviceChecksEnabled: true,
-      domotzEnabled: false,
       probeTarget: ''
     },
     discovery: {
-      enabled: false,
-      method: 'manual',
+      domotzEnabled: false,
+      unifiEnabled: false,
+      watchkeeperAgentEnabled: false,
       subnet: ''
     },
     remoteSupport: {
@@ -76,11 +77,17 @@ function defaultClientSettings() {
 function normaliseClientSettings(value) {
   const defaults = defaultClientSettings()
   const input = isObject(value) ? value : {}
+  const monitoringInput = isObject(input.monitoring)
+    ? input.monitoring
+    : {}
+  const discoveryInput = isObject(input.discovery)
+    ? input.discovery
+    : {}
 
   return validateClientSettings({
     ...defaults,
     ...input,
-    schemaVersion: 1,
+    schemaVersion: 2,
     site: {
       ...defaults.site,
       ...(isObject(input.site) ? input.site : {})
@@ -91,15 +98,27 @@ function normaliseClientSettings(value) {
     },
     monitoring: {
       ...defaults.monitoring,
-      ...(isObject(input.monitoring)
-        ? input.monitoring
-        : {})
+      ...monitoringInput,
+      source: normaliseMonitoringSource(monitoringInput)
     },
     discovery: {
       ...defaults.discovery,
-      ...(isObject(input.discovery)
-        ? input.discovery
-        : {})
+      ...discoveryInput,
+      domotzEnabled: normaliseDiscoveryFlag(
+        discoveryInput,
+        'domotzEnabled',
+        'domotz'
+      ),
+      unifiEnabled: normaliseDiscoveryFlag(
+        discoveryInput,
+        'unifiEnabled',
+        'unifi'
+      ),
+      watchkeeperAgentEnabled: normaliseDiscoveryFlag(
+        discoveryInput,
+        'watchkeeperAgentEnabled',
+        'watchkeeper-agent'
+      )
     },
     remoteSupport: {
       ...defaults.remoteSupport,
@@ -126,7 +145,7 @@ function mergeClientSettings(current, patch) {
   return normaliseClientSettings({
     ...base,
     ...patch,
-    schemaVersion: 1,
+    schemaVersion: 2,
     site: {
       ...base.site,
       ...(isObject(patch.site) ? patch.site : {})
@@ -163,28 +182,18 @@ function mergeClientSettings(current, patch) {
 }
 
 function validateClientSettings(value) {
-  const sharePointUrl = cleanString(
+  const sharePointUrl = validateUrl(
     value.sharePointUrl,
-    2000,
-    'SharePoint URL'
+    'SharePoint URL',
+    parsed => parsed.hostname.endsWith('.sharepoint.com')
   )
-
-  if (sharePointUrl) {
-    let parsed
-
-    try {
-      parsed = new URL(sharePointUrl)
-    } catch {
-      throw new Error('Invalid SharePoint URL')
-    }
-
-    if (
-      parsed.protocol !== 'https:' ||
-      !parsed.hostname.endsWith('.sharepoint.com')
-    ) {
-      throw new Error('Invalid SharePoint URL')
-    }
-  }
+  const arturaUrl = validateUrl(
+    value.arturaUrl,
+    'Artura URL',
+    parsed =>
+      parsed.hostname === 'app.artura.io' ||
+      parsed.hostname.endsWith('.artura.io')
+  )
 
   const pollIntervalMinutes = Number(
     value.monitoring?.pollIntervalMinutes
@@ -221,8 +230,9 @@ function validateClientSettings(value) {
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sharePointUrl,
+    arturaUrl,
     site: {
       type: enumValue(
         value.site?.type,
@@ -263,8 +273,10 @@ function validateClientSettings(value) {
       )
     },
     monitoring: {
-      enabled: booleanValue(
-        value.monitoring?.enabled
+      source: enumValue(
+        value.monitoring?.source,
+        monitoringSources,
+        'monitoring source'
       ),
       pollIntervalMinutes,
       internetCheckEnabled: booleanValue(
@@ -273,9 +285,6 @@ function validateClientSettings(value) {
       coreDeviceChecksEnabled: booleanValue(
         value.monitoring?.coreDeviceChecksEnabled
       ),
-      domotzEnabled: booleanValue(
-        value.monitoring?.domotzEnabled
-      ),
       probeTarget: cleanString(
         value.monitoring?.probeTarget,
         1000,
@@ -283,13 +292,14 @@ function validateClientSettings(value) {
       )
     },
     discovery: {
-      enabled: booleanValue(
-        value.discovery?.enabled
+      domotzEnabled: booleanValue(
+        value.discovery?.domotzEnabled
       ),
-      method: enumValue(
-        value.discovery?.method,
-        discoveryMethods,
-        'discovery method'
+      unifiEnabled: booleanValue(
+        value.discovery?.unifiEnabled
+      ),
+      watchkeeperAgentEnabled: booleanValue(
+        value.discovery?.watchkeeperAgentEnabled
       ),
       subnet: cleanString(
         value.discovery?.subnet,
@@ -322,6 +332,53 @@ function validateClientSettings(value) {
       recipients: [...new Set(recipients)].slice(0, 50)
     }
   }
+}
+
+function normaliseMonitoringSource(value) {
+  if (monitoringSources.has(value.source)) {
+    return value.source
+  }
+
+  if (value.enabled !== true) {
+    return 'none'
+  }
+
+  return value.domotzEnabled === true
+    ? 'domotz'
+    : 'basic-checks'
+}
+
+function normaliseDiscoveryFlag(value, field, legacyMethod) {
+  if (typeof value[field] === 'boolean') {
+    return value[field]
+  }
+
+  return value.enabled === true && value.method === legacyMethod
+}
+
+function validateUrl(value, fieldName, hostnameIsAllowed) {
+  const url = cleanString(value, 2000, fieldName)
+
+  if (!url) {
+    return ''
+  }
+
+  let parsed
+
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error(`Invalid ${fieldName}`)
+  }
+
+  if (
+    parsed.protocol !== 'https:' ||
+    !hostnameIsAllowed(parsed)
+  ) {
+    throw new Error(`Invalid ${fieldName}`)
+  }
+
+  return url
 }
 
 function enumValue(value, allowed, fieldName) {

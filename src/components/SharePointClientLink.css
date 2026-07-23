@@ -1,13 +1,51 @@
-.sharepoint-client-card {
-  min-height: 250px;
+.document-sources-page {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 28px;
-  align-items: center;
+  gap: 18px;
 }
 
-.sharepoint-client-copy h3 {
-  margin-bottom: 10px;
+.document-sources-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.document-sources-header h3 {
+  margin-bottom: 8px;
+}
+
+.document-sources-header p {
+  margin-bottom: 0;
+}
+
+.document-sources-header small {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.document-source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.document-source-card {
+  min-height: 290px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 22px;
+  align-items: start;
+}
+
+.sharepoint-client-copy h4 {
+  margin: 0 0 10px;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.sharepoint-client-copy > p:not(.eyebrow) {
+  line-height: 1.55;
 }
 
 .sharepoint-onedrive-note {
@@ -21,18 +59,10 @@
   line-height: 1.55;
 }
 
-.sharepoint-client-meta {
-  display: block;
-  margin-top: 14px;
-  color: #64748b;
-  font-size: 0.7rem;
-}
-
 .sharepoint-client-actions {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  min-width: 250px;
 }
 
 .sharepoint-open-button,
@@ -61,10 +91,9 @@
 }
 
 .sharepoint-link-editor {
-  grid-column: 1 / -1;
   display: grid;
   gap: 14px;
-  padding-top: 20px;
+  padding-top: 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -100,7 +129,6 @@
 }
 
 .sharepoint-link-error {
-  grid-column: 1 / -1;
   padding: 11px 13px;
   border: 1px solid rgba(248, 113, 113, 0.35);
   border-radius: 10px;
@@ -109,12 +137,14 @@
   font-size: 0.78rem;
 }
 
-@media (max-width: 760px) {
-  .sharepoint-client-card {
+@media (max-width: 800px) {
+  .document-source-grid {
     grid-template-columns: 1fr;
   }
+}
 
-  .sharepoint-client-actions {
-    min-width: 0;
+@media (max-width: 650px) {
+  .document-sources-header {
+    flex-direction: column;
   }
 }
