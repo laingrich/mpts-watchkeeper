@@ -1198,3 +1198,511 @@ export default function DeviceLauncher({
                       reachability === 'not-checkable'
                     const reachabilityLabel =
                       reachability === 'reachable'
+                        ? 'Online'
+                        : reachability === 'unreachable'
+                          ? 'Offline'
+                          : reachability === 'not-checkable'
+                            ? 'Launch link'
+                            : reachability === 'unknown'
+                              ? 'Status unavailable'
+                              : 'Checking…'
+                    const reachabilityTitle =
+                      reachabilityMessages[device.id] ||
+                      (reachability === 'unknown'
+                        ? 'The local Watchkeeper helper is not available'
+                        : reachability === 'unreachable'
+                          ? 'This device cannot currently be reached from this computer'
+                          : reachabilityLabel)
+
+                    return (
+                      <article
+                        className={[
+                          'launcher-card',
+                          mapOpen ? 'map-open' : '',
+                          draggedDeviceId === device.id
+                            ? 'dragging'
+                            : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        key={device.id}
+                        draggable={isEditing}
+                        onDragStart={() =>
+                          setDraggedDeviceId(device.id)
+                        }
+                        onDragEnd={() => setDraggedDeviceId(null)}
+                        onDragOver={event => {
+                          if (isEditing) event.preventDefault()
+                        }}
+                        onDrop={event =>
+                          handleDeviceDrop(event, device)
+                        }
+                      >
+                        <div className="launcher-card-main">
+                          <div className="launcher-card-copy">
+                            <p className="eyebrow">
+                              {device.details
+                                ? device.details.title
+                                : group.title}
+                            </p>
+                            <h3>{device.title}</h3>
+                            <span>{device.link}</span>
+                            {!isEditing && (
+                              <span
+                                className={`launcher-device-reachability ${reachability}`}
+                                title={reachabilityTitle}
+                              >
+                                <span aria-hidden="true" />
+                                {reachabilityLabel}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="launcher-card-actions">
+                            {isEditing ? (
+                              <>
+                                <span
+                                  className="launcher-drag-handle"
+                                  title="Drag to reorder"
+                                >
+                                  ⋮⋮
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => editDevice(device)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="launcher-danger-action"
+                                  type="button"
+                                  onClick={() => removeDevice(device)}
+                                >
+                                  Remove
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {device.details && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleMap(device.id)}
+                                  >
+                                    {mapOpen ? 'Hide map' : 'Show map'}
+                                  </button>
+                                )}
+                                {canOpenDevice ? (
+                                  <a
+                                    href={device.link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={reachabilityTitle}
+                                  >
+                                    Open device
+                                  </a>
+                                ) : (
+                                  <button
+                                    className="launcher-open-device-disabled"
+                                    type="button"
+                                    disabled
+                                    title={reachabilityTitle}
+                                  >
+                                    Open device
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {device.details && mapOpen && (
+                          <div className="launcher-inline-map">
+                            <div className="launcher-inline-map-heading">
+                              <div>
+                                <p className="eyebrow">
+                                  {device.details.title}
+                                </p>
+                                <h4>{device.title}</h4>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => toggleMap(device.id)}
+                              >
+                                Close map
+                              </button>
+                            </div>
+                            <DetailTable details={device.details} />
+                          </div>
+                        )}
+                      </article>
+                    )
+                  })}
+
+                  {isEditing && devices.length === 0 && (
+                    <button
+                      className="launcher-empty-group"
+                      type="button"
+                      onClick={() => addDevice(group.id)}
+                    >
+                      Add the first device to {group.title}
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          )
+        })
+      )}
+
+      {deviceDraft && (
+        <div
+          className="launcher-modal-backdrop"
+          onMouseDown={() => setDeviceDraft(null)}
+        >
+          <form
+            className="launcher-modal launcher-device-form"
+            onSubmit={applyDeviceDraft}
+            onMouseDown={event => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <p className="eyebrow">DEVICE EDITOR</p>
+                <h2>
+                  {deviceDraft.mode === 'add'
+                    ? 'Add device'
+                    : 'Edit device'}
+                </h2>
+              </div>
+              <button
+                className="launcher-close"
+                type="button"
+                onClick={() => setDeviceDraft(null)}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="launcher-form-fields">
+              <label>
+                Device name
+                <input
+                  required
+                  value={deviceDraft.device.title}
+                  onChange={event =>
+                    updateDeviceDraft('title', event.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                Device URL
+                <input
+                  required
+                  value={deviceDraft.device.link}
+                  onChange={event =>
+                    updateDeviceDraft('link', event.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                Group
+                <select
+                  value={deviceDraft.device.group}
+                  onChange={event =>
+                    updateDeviceDraft('group', event.target.value)
+                  }
+                >
+                  {config.groups.map(group => (
+                    <option key={group.id} value={group.id}>
+                      {group.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="launcher-checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={deviceDraft.hasMap}
+                  onChange={event =>
+                    setDeviceDraft(current =>
+                      current
+                        ? {
+                            ...current,
+                            hasMap: event.target.checked,
+                          }
+                        : current,
+                    )
+                  }
+                />
+                Include an expandable map
+              </label>
+
+              {deviceDraft.hasMap && (
+                <>
+                  <label>
+                    Map title
+                    <input
+                      value={
+                        deviceDraft.device.details?.title ?? ''
+                      }
+                      placeholder="Outlet map, speaker map, zone map…"
+                      onChange={event =>
+                        setDeviceDraft(current =>
+                          current
+                            ? {
+                                ...current,
+                                device: {
+                                  ...current.device,
+                                  details: {
+                                    type:
+                                      current.device.details?.type ??
+                                      'map',
+                                    title: event.target.value,
+                                    rows:
+                                      current.device.details?.rows ??
+                                      [],
+                                  },
+                                },
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    Map rows
+                    <textarea
+                      rows={10}
+                      value={deviceDraft.mapRowsText}
+                      placeholder={
+                        '1 | Rack fan\n2 | RTI power bar | XP-8V; PCM-4'
+                      }
+                      onChange={event =>
+                        setDeviceDraft(current =>
+                          current
+                            ? {
+                                ...current,
+                                mapRowsText: event.target.value,
+                              }
+                            : current,
+                        )
+                      }
+                    />
+                    <small>
+                      One row per line. Separate columns with | and
+                      list items with semicolons.
+                    </small>
+                  </label>
+                </>
+              )}
+            </div>
+
+            <footer>
+              <button
+                type="button"
+                onClick={() => setDeviceDraft(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="launcher-primary-action"
+                type="submit"
+              >
+                Apply
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
+
+      {groupDraft && (
+        <div
+          className="launcher-modal-backdrop"
+          onMouseDown={() => setGroupDraft(null)}
+        >
+          <form
+            className="launcher-modal launcher-group-form"
+            onSubmit={applyGroupDraft}
+            onMouseDown={event => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <p className="eyebrow">GROUP EDITOR</p>
+                <h2>
+                  {groupDraft.mode === 'add'
+                    ? 'Add group'
+                    : 'Edit group'}
+                </h2>
+              </div>
+              <button
+                className="launcher-close"
+                type="button"
+                onClick={() => setGroupDraft(null)}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="launcher-form-fields">
+              <label>
+                Group title
+                <input
+                  required
+                  value={groupDraft.group.title}
+                  onChange={event =>
+                    setGroupDraft(current =>
+                      current
+                        ? {
+                            ...current,
+                            group: {
+                              ...current.group,
+                              title: event.target.value,
+                            },
+                          }
+                        : current,
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                Accent colour
+                <input
+                  value={groupDraft.group.accent}
+                  onChange={event =>
+                    setGroupDraft(current =>
+                      current
+                        ? {
+                            ...current,
+                            group: {
+                              ...current.group,
+                              accent: event.target.value,
+                            },
+                          }
+                        : current,
+                    )
+                  }
+                />
+              </label>
+            </div>
+
+            <footer>
+              <button
+                type="button"
+                onClick={() => setGroupDraft(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="launcher-primary-action"
+                type="submit"
+              >
+                Apply
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
+    </section>
+  )
+
+  function updateDeviceDraft(
+    field: 'title' | 'link' | 'group',
+    value: string,
+  ) {
+    setDeviceDraft(current =>
+      current
+        ? {
+            ...current,
+            device: {
+              ...current.device,
+              [field]: value,
+            },
+          }
+        : current,
+    )
+  }
+}
+
+function createDeviceId(title: string) {
+  const slug = slugify(title) || 'device'
+  return `dev-${slug}-${crypto.randomUUID().slice(0, 8)}`
+}
+
+function createGroupId(
+  title: string,
+  existingGroups: LauncherGroup[],
+) {
+  const base = slugify(title) || 'group'
+  const existingIds = new Set(
+    existingGroups.map(group => group.id),
+  )
+
+  if (!existingIds.has(base)) return base
+
+  let suffix = 2
+  while (existingIds.has(`${base}-${suffix}`)) suffix += 1
+  return `${base}-${suffix}`
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60)
+}
+
+function serialiseRows(rows: DetailRow[]) {
+  return rows
+    .map(row =>
+      row
+        .map(cell =>
+          Array.isArray(cell) ? cell.join('; ') : String(cell),
+        )
+        .join(' | '),
+    )
+    .join('\n')
+}
+
+function parseRows(value: string): DetailRow[] {
+  return value
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line =>
+      line.split('|').map(rawCell => {
+        const cell = rawCell.trim()
+
+        if (cell.includes(';')) {
+          return cell
+            .split(';')
+            .map(item => item.trim())
+            .filter(Boolean)
+        }
+
+        return cell
+      }),
+    )
+}
+
+async function readError(response: Response) {
+  try {
+    const body = (await response.json()) as { error?: string }
+    return body.error || `Request failed with status ${response.status}`
+  } catch {
+    return `Request failed with status ${response.status}`
+  }
+}
+
+function formatDate(value: string) {
+  const date = new Date(value)
+
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString()
+}
