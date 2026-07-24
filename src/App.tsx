@@ -322,6 +322,12 @@ export default function App() {
           <DeviceLauncher
             siteId={client.id}
             siteName={client.name}
+            remoteSupport={clientSettings.remoteSupport}
+            onConfigureRemoteSupport={
+              isAdmin
+                ? () => setTab('Site configuration')
+                : undefined
+            }
             onDeviceCountChange={count =>
               setDeviceCounts(current => ({
                 ...current,

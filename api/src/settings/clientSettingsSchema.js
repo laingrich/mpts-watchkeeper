@@ -27,6 +27,7 @@ const remoteSupportMethods = new Set([
   'none',
   'windows-rdp',
   'chrome-remote-desktop',
+  'rustdesk',
   'teamviewer',
   'quick-assist',
   'other'
@@ -34,7 +35,7 @@ const remoteSupportMethods = new Set([
 
 function defaultClientSettings() {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     sharePointUrl: '',
     arturaUrl: 'https://app.artura.io',
     site: {
@@ -63,6 +64,8 @@ function defaultClientSettings() {
     },
     remoteSupport: {
       method: 'none',
+      computerName: '',
+      rustDeskId: '',
       clientApprovalRequired: false,
       instructions: ''
     },
@@ -87,7 +90,7 @@ function normaliseClientSettings(value) {
   return validateClientSettings({
     ...defaults,
     ...input,
-    schemaVersion: 2,
+    schemaVersion: 3,
     site: {
       ...defaults.site,
       ...(isObject(input.site) ? input.site : {})
@@ -145,7 +148,7 @@ function mergeClientSettings(current, patch) {
   return normaliseClientSettings({
     ...base,
     ...patch,
-    schemaVersion: 2,
+    schemaVersion: 3,
     site: {
       ...base.site,
       ...(isObject(patch.site) ? patch.site : {})
@@ -230,7 +233,7 @@ function validateClientSettings(value) {
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     sharePointUrl,
     arturaUrl,
     site: {
@@ -312,6 +315,16 @@ function validateClientSettings(value) {
         value.remoteSupport?.method,
         remoteSupportMethods,
         'remote support method'
+      ),
+      computerName: cleanString(
+        value.remoteSupport?.computerName,
+        250,
+        'Remote computer name'
+      ),
+      rustDeskId: cleanString(
+        value.remoteSupport?.rustDeskId,
+        250,
+        'RustDesk ID'
       ),
       clientApprovalRequired: booleanValue(
         value.remoteSupport?.clientApprovalRequired

@@ -209,6 +209,25 @@
   border-color: rgba(96, 165, 250, 0.35);
 }
 
+.launcher-remote-access-card {
+  border-color: color-mix(
+    in srgb,
+    var(--launcher-accent) 58%,
+    rgba(255, 255, 255, 0.08)
+  );
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(
+        in srgb,
+        var(--launcher-accent) 12%,
+        transparent
+      ),
+      transparent 62%
+    ),
+    rgba(10, 18, 34, 0.9);
+}
+
 .launcher-card-main {
   min-height: 165px;
   display: flex;
@@ -228,6 +247,13 @@
   color: #7dd3fc;
   font-size: 0.76rem;
   overflow-wrap: anywhere;
+}
+
+.launcher-card-copy .launcher-remote-access-note {
+  margin: 10px 0 0;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  line-height: 1.45;
 }
 
 .launcher-card-actions a {
