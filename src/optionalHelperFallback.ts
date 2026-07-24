@@ -21,10 +21,18 @@ function applyOptionalHelperFallback() {
 
       if (!status) return
 
-      status.lastChild?.remove()
-      status.append('Status not checked')
-      status.title =
+      const fallbackLabel = 'Status not checked'
+      const fallbackTitle =
         'Automatic reachability checking is unavailable on this device'
+
+      if (status.textContent?.trim() !== fallbackLabel) {
+        status.lastChild?.remove()
+        status.append(fallbackLabel)
+      }
+
+      if (status.title !== fallbackTitle) {
+        status.title = fallbackTitle
+      }
 
       const disabledButton = card.querySelector<HTMLButtonElement>(
         'button.launcher-open-device-disabled',
