@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import UserMenu, { type ClientPrincipal } from './UserMenu'
 import DeviceLauncher from './components/DeviceLauncher'
 import ClientPicker from './components/ClientPicker'
@@ -63,22 +57,6 @@ export default function App() {
     useState<Record<string, number>>({})
   const [clientSettings, setClientSettings] =
     useState<ClientSettings>(createDefaultClientSettings)
-
-  const handleDeviceCountChange = useCallback(
-    (count: number) => {
-      if (!selectedClientId) return
-
-      setDeviceCounts(current =>
-        current[selectedClientId] === count
-          ? current
-          : {
-              ...current,
-              [selectedClientId]: count,
-            },
-      )
-    },
-    [selectedClientId],
-  )
 
   useEffect(() => {
     void loadClients()
@@ -345,7 +323,6 @@ export default function App() {
                 ? () => setTab('Site configuration')
                 : undefined
             }
-            onDeviceCountChange={handleDeviceCountChange}
           />
         )}
 
