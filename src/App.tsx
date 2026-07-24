@@ -329,10 +329,14 @@ export default function App() {
                 : undefined
             }
             onDeviceCountChange={count =>
-              setDeviceCounts(current => ({
-                ...current,
-                [client.id]: count,
-              }))
+              setDeviceCounts(current =>
+                current[client.id] === count
+                  ? current
+                  : {
+                      ...current,
+                      [client.id]: count,
+                    },
+              )
             }
           />
         )}
