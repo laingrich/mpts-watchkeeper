@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -62,6 +63,22 @@ export default function App() {
     useState<Record<string, number>>({})
   const [clientSettings, setClientSettings] =
     useState<ClientSettings>(createDefaultClientSettings)
+
+  const handleDeviceCountChange = useCallback(
+    (count: number) => {
+      if (!selectedClientId) return
+
+      setDeviceCounts(current =>
+        current[selectedClientId] === count
+          ? current
+          : {
+              ...current,
+              [selectedClientId]: count,
+            },
+      )
+    },
+    [selectedClientId],
+  )
 
   useEffect(() => {
     void loadClients()
@@ -328,16 +345,7 @@ export default function App() {
                 ? () => setTab('Site configuration')
                 : undefined
             }
-            onDeviceCountChange={count =>
-              setDeviceCounts(current =>
-                current[client.id] === count
-                  ? current
-                  : {
-                      ...current,
-                      [client.id]: count,
-                    },
-              )
-            }
+            onDeviceCountChange={handleDeviceCountChange}
           />
         )}
 
