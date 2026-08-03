@@ -84,6 +84,36 @@
   border-color: #60a5fa;
 }
 
+.client-picker-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.client-picker-scope input {
+  margin: 3px 0 0;
+  accent-color: #2563eb;
+}
+
+.client-picker-scope span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.client-picker-scope strong {
+  font-size: 0.78rem;
+}
+
+.client-picker-scope small {
+  color: #64748b;
+  font-size: 0.67rem;
+}
+
 .client-picker-results {
   max-height: min(62vh, 520px);
   overflow-y: auto;

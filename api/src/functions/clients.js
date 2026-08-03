@@ -109,66 +109,42 @@ async function fetchAllClients() {
     process.env.JETBUILT_CLIENTS_PATH ||
     'clients'
 
+  const projectsPath =
+    process.env.JETBUILT_PROJECTS_PATH ||
+    'projects'
+
   if (!apiKey) {
     throw new Error('JETBUILT_API_KEY is not configured')
   }
 
-  const cleanClientsPath =
-    clientsPath.replace(/^\/+/, '')
-
-  let nextUrl = new URL(
-    cleanClientsPath,
-    ensureTrailingSlash(baseUrl)
-  ).toString()
-
-  const rawClients = []
-  let pageCount = 0
-
-  while (nextUrl) {
-    pageCount += 1
-
-    if (pageCount > 100) {
-      throw new Error(
-        'Jetbuilt pagination exceeded 100 pages'
-      )
-    }
-
-    const response = await fetch(nextUrl, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/vnd.jetbuilt.v1',
-        Authorization: `Bearer ${apiKey}`
-      }
+  const [rawClients, rawProjects] = await Promise.all([
+    fetchPaginatedCollection({
+      firstUrl: buildApiUrl(baseUrl, clientsPath),
+      apiKey,
+      collectionName: 'clients',
+      extractItems: extractClientArray
+    }),
+    fetchPaginatedCollection({
+      firstUrl: buildApiUrl(baseUrl, projectsPath),
+      apiKey,
+      collectionName: 'projects',
+      extractItems: extractProjectArray
     })
+  ])
 
-    if (!response.ok) {
-      const responseText = await response.text()
-
-      console.error(
-        'Jetbuilt response',
-        response.status,
-        responseText.slice(0, 1000)
-      )
-
-      throw new Error(
-        `Jetbuilt returned HTTP ${response.status}`
-      )
-    }
-
-    const payload = await response.json()
-    const pageClients = extractClientArray(payload)
-
-    rawClients.push(...pageClients)
-
-    nextUrl = getNextPageUrl(
-      response.headers.get('link'),
-      nextUrl
-    )
-  }
+  const projectClientIds = new Set(
+    rawProjects
+      .map(getProjectClientId)
+      .filter(clientId => clientId !== null)
+  )
 
   return rawClients
     .map(normaliseClient)
     .filter(client => client !== null)
+    .map(client => ({
+      ...client,
+      hasProjects: projectClientIds.has(client.id)
+    }))
     .sort((left, right) =>
       left.name.localeCompare(
         right.name,
@@ -178,6 +154,166 @@ async function fetchAllClients() {
         }
       )
     )
+}
+
+async function fetchPaginatedCollection({
+  firstUrl,
+  apiKey,
+  collectionName,
+  extractItems
+}) {
+  const firstPage = await fetchCollectionPage({
+    url: firstUrl,
+    apiKey,
+    collectionName,
+    extractItems
+  })
+
+  const items = [...firstPage.items]
+  const totalCount = Number(firstPage.totalCount)
+  const nextUrl = getNextPageUrl(
+    firstPage.linkHeader,
+    firstUrl
+  )
+
+  if (
+    nextUrl &&
+    items.length > 0 &&
+    Number.isFinite(totalCount) &&
+    totalCount >= items.length
+  ) {
+    const totalPages = Math.ceil(totalCount / items.length)
+
+    if (totalPages > 100) {
+      throw new Error(
+        `Jetbuilt ${collectionName} pagination exceeded 100 pages`
+      )
+    }
+
+    const pageUrls = Array.from(
+      { length: Math.max(totalPages - 1, 0) },
+      (_, index) => createPageUrl(nextUrl, index + 2)
+    )
+
+    const remainingPages = await mapWithConcurrency(
+      pageUrls,
+      10,
+      url =>
+        fetchCollectionPage({
+          url,
+          apiKey,
+          collectionName,
+          extractItems
+        })
+    )
+
+    for (const page of remainingPages) {
+      items.push(...page.items)
+    }
+
+    return items
+  }
+
+  let fallbackUrl = nextUrl
+  let pageCount = 1
+
+  while (fallbackUrl) {
+    pageCount += 1
+
+    if (pageCount > 100) {
+      throw new Error(
+        `Jetbuilt ${collectionName} pagination exceeded 100 pages`
+      )
+    }
+
+    const page = await fetchCollectionPage({
+      url: fallbackUrl,
+      apiKey,
+      collectionName,
+      extractItems
+    })
+
+    items.push(...page.items)
+
+    fallbackUrl = getNextPageUrl(
+      page.linkHeader,
+      fallbackUrl
+    )
+  }
+
+  return items
+}
+
+async function fetchCollectionPage({
+  url,
+  apiKey,
+  collectionName,
+  extractItems
+}) {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/vnd.jetbuilt.v1',
+      Authorization: `Bearer ${apiKey}`
+    }
+  })
+
+  if (!response.ok) {
+    const responseText = await response.text()
+
+    console.error(
+      `Jetbuilt ${collectionName} response`,
+      response.status,
+      responseText.slice(0, 1000)
+    )
+
+    throw new Error(
+      `Jetbuilt returned HTTP ${response.status}`
+    )
+  }
+
+  const payload = await response.json()
+
+  return {
+    items: extractItems(payload),
+    linkHeader: response.headers.get('link'),
+    totalCount: response.headers.get('x-total-count')
+  }
+}
+
+function createPageUrl(templateUrl, pageNumber) {
+  const url = new URL(templateUrl)
+  url.searchParams.set('page', String(pageNumber))
+  return url.toString()
+}
+
+async function mapWithConcurrency(values, concurrency, mapper) {
+  const results = new Array(values.length)
+  let nextIndex = 0
+
+  async function work() {
+    while (nextIndex < values.length) {
+      const currentIndex = nextIndex
+      nextIndex += 1
+      results[currentIndex] = await mapper(values[currentIndex])
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(concurrency, values.length) },
+      work
+    )
+  )
+
+  return results
+}
+
+function buildApiUrl(baseUrl, path) {
+  return new URL(
+    path.replace(/^\/+/, ''),
+    ensureTrailingSlash(baseUrl)
+  ).toString()
 }
 
 function extractClientArray(payload) {
@@ -196,6 +332,39 @@ function extractClientArray(payload) {
   throw new Error(
     'Jetbuilt returned an unexpected clients response'
   )
+}
+
+function extractProjectArray(payload) {
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
+  if (Array.isArray(payload?.projects)) {
+    return payload.projects
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data
+  }
+
+  throw new Error(
+    'Jetbuilt returned an unexpected projects response'
+  )
+}
+
+function getProjectClientId(project) {
+  if (!project || typeof project !== 'object') {
+    return null
+  }
+
+  const clientId =
+    project.client?.id ??
+    project.client_id ??
+    project.clientId
+
+  return clientId === undefined || clientId === null
+    ? null
+    : String(clientId)
 }
 
 function normaliseClient(client) {

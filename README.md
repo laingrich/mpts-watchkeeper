@@ -5,7 +5,7 @@ Initial deployable frontend for Azure Static Web Apps.
 ## Included
 
 - Saltmarsh House site view
-- Overview, Devices, Documents and Issues sections
+- Overview, Devices, Documents and Service sections
 - Searchable device launcher
 - Responsive desktop/mobile layout
 - Static Web Apps navigation fallback

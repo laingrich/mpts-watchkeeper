@@ -5,8 +5,6 @@ import ClientPicker from './components/ClientPicker'
 import SharePointClientLink from './components/SharePointClientLink'
 import VpnConnection from './components/VpnConnection'
 import SystemHealthDashboard from './components/SystemHealthDashboard'
-import IssueManagement from './components/IssueManagement'
-import ServiceReportForm from './components/ServiceReportForm'
 import SiteConfiguration from './components/SiteConfiguration'
 import {
   accessProviderDescriptions,
@@ -23,6 +21,7 @@ type JetbuiltClient = {
   name: string
   active: boolean | null
   updatedAt: string | null
+  hasProjects: boolean
 }
 
 type ClientsResponse = {
@@ -37,8 +36,7 @@ const tabs = [
   'Overview',
   'Devices',
   'Documents',
-  'Issues',
-  'Submit service report',
+  'Service',
   'Site configuration',
 ] as const
 
@@ -93,10 +91,14 @@ export default function App() {
       setFetchedAt(data.fetchedAt)
 
       if (data.clients.length > 0) {
+        const defaultClient =
+          data.clients.find(client => client.hasProjects) ??
+          data.clients[0]
+
         setSelectedClientId(currentId =>
           data.clients.some(client => client.id === currentId)
             ? currentId
-            : data.clients[0].id,
+            : defaultClient.id,
         )
       }
     } catch (loadError) {
@@ -294,12 +296,12 @@ export default function App() {
               <button
                 className="panel overview-card"
                 type="button"
-                onClick={() => setTab('Issues')}
+                onClick={() => setTab('Service')}
               >
-                <p className="eyebrow">OPEN ISSUES</p>
-                <h3>0</h3>
-                <p>Mock Jetbuilt issue workflow available</p>
-                <span className="overview-card-link">View issues →</span>
+                <p className="eyebrow">SERVICE</p>
+                <h3>Jetbuilt</h3>
+                <p>Issues, service cases and service reports</p>
+                <span className="overview-card-link">Open service →</span>
               </button>
             </section>
 
@@ -334,19 +336,7 @@ export default function App() {
           />
         )}
 
-        {tab === 'Issues' && (
-          <IssueManagement
-            clientId={client.id}
-            clientName={client.name}
-          />
-        )}
-
-        {tab === 'Submit service report' && (
-          <ServiceReportForm
-            clientId={client.id}
-            clientName={client.name}
-          />
-        )}
+        {tab === 'Service' && <JetbuiltService clientName={client.name} />}
 
         {tab === 'Site configuration' && isAdmin && (
           <SiteConfiguration
@@ -357,6 +347,36 @@ export default function App() {
         )}
       </main>
     </div>
+  )
+}
+
+const JETBUILT_SERVICE_URL = 'https://app.jetbuilt.com/service/cases'
+
+function JetbuiltService({ clientName }: { clientName: string }) {
+  return (
+    <section className="panel service-placeholder">
+      <div>
+        <p className="eyebrow">SERVICE</p>
+        <h3>Manage service in Jetbuilt</h3>
+        <p>
+          Open Jetbuilt to review issues, manage service cases and submit
+          service reports for {clientName}.
+        </p>
+        <p className="service-placeholder-note">
+          Full Jetbuilt service integration is due in a future release of
+          Watchkeeper.
+        </p>
+      </div>
+
+      <a
+        className="service-placeholder-link"
+        href={JETBUILT_SERVICE_URL}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Open Jetbuilt Service ↗
+      </a>
+    </section>
   )
 }
 
