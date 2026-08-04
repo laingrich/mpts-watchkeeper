@@ -133,14 +133,18 @@ function isSaltmarsh(clientName: string) {
   return clientName.trim().toLowerCase() === 'saltmarsh house'
 }
 
+function cloneLauncherValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 function createInitialConfig(clientName: string): LauncherConfig {
   if (isSaltmarsh(clientName)) {
-    return structuredClone(saltmarshSeed)
+    return cloneLauncherValue(saltmarshSeed)
   }
 
   return {
     version: 1,
-    groups: structuredClone(defaultGroups),
+    groups: cloneLauncherValue(defaultGroups),
     devices: [],
   }
 }
@@ -492,7 +496,7 @@ export default function DeviceLauncher({
       if (response.status === 404) {
         const initial = createInitialConfig(clientName)
         setConfig(initial)
-        setSavedConfig(structuredClone(initial))
+        setSavedConfig(cloneLauncherValue(initial))
         setEtag(null)
         setUpdatedAt(null)
         setUpdatedBy(null)
@@ -505,7 +509,7 @@ export default function DeviceLauncher({
 
       const data = (await response.json()) as ConfigResponse
       setConfig(data.config)
-      setSavedConfig(structuredClone(data.config))
+      setSavedConfig(cloneLauncherValue(data.config))
       setEtag(data.etag)
       setUpdatedAt(data.updatedAt)
       setUpdatedBy(data.updatedBy)
@@ -695,14 +699,14 @@ export default function DeviceLauncher({
   }
 
   function beginEditing() {
-    setSavedConfig(structuredClone(config))
+    setSavedConfig(cloneLauncherValue(config))
     setIsEditing(true)
     setError(null)
   }
 
   function cancelEditing() {
     if (savedConfig) {
-      setConfig(structuredClone(savedConfig))
+      setConfig(cloneLauncherValue(savedConfig))
     }
 
     setIsEditing(false)
@@ -747,7 +751,7 @@ export default function DeviceLauncher({
 
       const data = (await response.json()) as ConfigResponse
       setConfig(data.config)
-      setSavedConfig(structuredClone(data.config))
+      setSavedConfig(cloneLauncherValue(data.config))
       setEtag(data.etag)
       setUpdatedAt(data.updatedAt)
       setUpdatedBy(data.updatedBy)
@@ -790,7 +794,7 @@ export default function DeviceLauncher({
   function editDevice(device: LauncherDevice) {
     setDeviceDraft({
       mode: 'edit',
-      device: structuredClone(device),
+      device: cloneLauncherValue(device),
       hasMap: Boolean(device.details),
       mapRowsText: device.details
         ? serialiseRows(device.details.rows)
@@ -885,7 +889,7 @@ export default function DeviceLauncher({
   function editGroup(group: LauncherGroup) {
     setGroupDraft({
       mode: 'edit',
-      group: structuredClone(group),
+      group: cloneLauncherValue(group),
     })
   }
 
@@ -1015,7 +1019,10 @@ export default function DeviceLauncher({
   }
 
   return (
-    <section className="launcher">
+    <section
+      className="launcher"
+      key={isEditing ? 'editing' : 'viewing'}
+    >
       <div className="launcher-editor-bar">
         <div>
           <strong>{config.devices.length} devices</strong>
@@ -1226,7 +1233,10 @@ export default function DeviceLauncher({
                           .filter(Boolean)
                           .join(' ')}
                         key={device.id}
-                        draggable={isEditing}
+                        draggable={
+                          isEditing &&
+                          window.matchMedia('(pointer: fine)').matches
+                        }
                         onDragStart={() =>
                           setDraggedDeviceId(device.id)
                         }
@@ -1629,7 +1639,14 @@ export default function DeviceLauncher({
 
 function createDeviceId(title: string) {
   const slug = slugify(title) || 'device'
-  return `dev-${slug}-${crypto.randomUUID().slice(0, 8)}`
+  const randomPart =
+    typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().slice(0, 8)
+      : Array.from(crypto.getRandomValues(new Uint8Array(4)))
+          .map(value => value.toString(16).padStart(2, '0'))
+          .join('')
+
+  return `dev-${slug}-${randomPart}`
 }
 
 function createGroupId(

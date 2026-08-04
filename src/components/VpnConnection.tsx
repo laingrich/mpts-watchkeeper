@@ -35,6 +35,24 @@ type VpnConnectionProps = {
 }
 
 const AGENT_URL = 'http://127.0.0.1:47831'
+const WIFIMAN_IOS_URL =
+  'https://apps.apple.com/app/ubiquiti-wifiman/id1385561119'
+const WIFIMAN_ANDROID_URL =
+  'https://play.google.com/store/apps/details?id=com.ubnt.usurvey'
+const WIFIMAN_DESKTOP_URL =
+  'https://ui.com/download/app/wifiman-desktop'
+
+function getWiFimanUrl() {
+  const userAgent = navigator.userAgent.toLowerCase()
+  const isAppleTouchDevice =
+    /iphone|ipad|ipod/.test(userAgent) ||
+    (navigator.platform === 'MacIntel' &&
+      navigator.maxTouchPoints > 1)
+
+  if (isAppleTouchDevice) return WIFIMAN_IOS_URL
+  if (userAgent.includes('android')) return WIFIMAN_ANDROID_URL
+  return WIFIMAN_DESKTOP_URL
+}
 
 export default function VpnConnection({
   clientId,
@@ -120,7 +138,7 @@ export default function VpnConnection({
     } catch {
       setState('helper-unavailable')
       setDetail(
-        'Automatic access checking is unavailable on this device. You may already be onsite or connected through Teleport.',
+        `Open WiFiman and select ${clientName} in Teleport. Watchkeeper cannot verify the connection automatically on this device.`,
       )
     }
   }, [clientId, clientName])
@@ -243,7 +261,7 @@ export default function VpnConnection({
     } catch {
       setState('helper-unavailable')
       setDetail(
-        'Automatic access checking is unavailable on this device. Open WiFiman directly if you need to connect with Teleport.',
+        `Open WiFiman and select ${clientName} in Teleport. Watchkeeper cannot verify the connection automatically on this device.`,
       )
     }
   }
@@ -304,7 +322,6 @@ export default function VpnConnection({
   const disabled =
     state === 'checking' ||
     state === 'opening' ||
-    state === 'helper-unavailable' ||
     state === 'unconfigured' ||
     state === 'connected-local'
 
@@ -327,25 +344,30 @@ export default function VpnConnection({
           {label}
         </span>
 
-        <button
-          className="hero-vpn-button"
-          type="button"
-          disabled={disabled}
-          onClick={() => void openVpnApplication()}
-          title={
-            state === 'helper-unavailable'
-              ? 'Open WiFiman directly if Teleport is required'
-              : undefined
-          }
-        >
-          {state === 'connected-local'
-            ? 'Connected locally'
-            : state === 'connected-teleport'
-            ? 'Open WiFiman'
-            : state === 'helper-unavailable'
-            ? 'Use device links'
-            : 'Connect to site'}
-        </button>
+        {state === 'helper-unavailable' ? (
+          <a
+            className="hero-vpn-button"
+            href={getWiFimanUrl()}
+            target="_blank"
+            rel="noreferrer"
+            title="Open or install WiFiman to connect through Teleport"
+          >
+            Open WiFiman
+          </a>
+        ) : (
+          <button
+            className="hero-vpn-button"
+            type="button"
+            disabled={disabled}
+            onClick={() => void openVpnApplication()}
+          >
+            {state === 'connected-local'
+              ? 'Connected locally'
+              : state === 'connected-teleport'
+              ? 'Open WiFiman'
+              : 'Connect to site'}
+          </button>
+        )}
       </div>
     </div>
   )

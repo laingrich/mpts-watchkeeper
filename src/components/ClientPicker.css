@@ -199,15 +199,16 @@
 
 @media (max-width: 760px) {
   .client-picker {
+    width: 100%;
     min-width: 0;
   }
 
   .client-picker-menu {
-    position: fixed;
-    top: 76px;
-    right: 16px;
-    left: 16px;
-    width: auto;
+    position: absolute;
+    top: calc(100% + 9px);
+    right: auto;
+    left: 0;
+    width: calc(100vw - 40px);
   }
 }
 
