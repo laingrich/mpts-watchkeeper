@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import UserMenu, { type ClientPrincipal } from './UserMenu'
 import DeviceLauncher from './components/DeviceLauncher'
 import ClientPicker from './components/ClientPicker'
@@ -15,6 +21,14 @@ import {
   type ClientSettings,
   type ClientSettingsResponse,
 } from './clientSettings'
+import {
+  WATCHKEEPER_TABS,
+  createDefaultUserPreferences,
+  loadUserPreferences,
+  saveUserPreferences,
+  type UserPreferences,
+  type WatchkeeperTab,
+} from './userPreferences'
 
 type JetbuiltClient = {
   id: string
@@ -32,20 +46,10 @@ type ClientsResponse = {
   source: string
 }
 
-const tabs = [
-  'Overview',
-  'Devices',
-  'Documents',
-  'Service',
-  'Site configuration',
-] as const
-
-type Tab = (typeof tabs)[number]
-
 export default function App() {
   const [clientList, setClientList] = useState<JetbuiltClient[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
-  const [tab, setTab] = useState<Tab>('Overview')
+  const [tab, setTab] = useState<WatchkeeperTab>('Overview')
   const [currentUser, setCurrentUser] =
     useState<ClientPrincipal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -55,6 +59,12 @@ export default function App() {
     useState<Record<string, number>>({})
   const [clientSettings, setClientSettings] =
     useState<ClientSettings>(createDefaultClientSettings)
+  const [userPreferences, setUserPreferences] =
+    useState<UserPreferences>(createDefaultUserPreferences)
+  const [userPreferencesReady, setUserPreferencesReady] =
+    useState(false)
+  const pendingPreferencesSave = useRef<UserPreferences | null>(null)
+  const preferencesSaveInFlight = useRef(false)
 
   useEffect(() => {
     void loadClients()
@@ -68,6 +78,23 @@ export default function App() {
     void loadClientSettings(selectedClientId)
   }, [selectedClientId])
 
+  useEffect(() => {
+    if (!userPreferencesReady) return
+
+    pendingPreferencesSave.current = userPreferences
+    void flushPreferenceSaves()
+  }, [userPreferences, userPreferencesReady])
+
+  useEffect(() => {
+    if (
+      currentUser &&
+      !currentUser.userRoles.includes('watchkeeper_admin') &&
+      tab === 'Site configuration'
+    ) {
+      changeTab('Overview')
+    }
+  }, [currentUser, tab])
+
   async function loadClients(forceRefresh = false) {
     setIsLoading(true)
     setError(null)
@@ -76,9 +103,17 @@ export default function App() {
       const endpoint = forceRefresh
         ? '/api/clients?refresh=true'
         : '/api/clients'
-      const response = await fetch(endpoint, {
-        headers: { Accept: 'application/json' },
-      })
+      const [response, preferencesResult] = await Promise.all([
+        fetch(endpoint, {
+          headers: { Accept: 'application/json' },
+        }),
+        loadUserPreferences()
+          .then(preferences => ({ preferences, error: null }))
+          .catch(preferencesError => ({
+            preferences: createDefaultUserPreferences(),
+            error: preferencesError,
+          })),
+      ])
 
       if (!response.ok) throw new Error(await readError(response))
 
@@ -90,16 +125,49 @@ export default function App() {
       setClientList(data.clients)
       setFetchedAt(data.fetchedAt)
 
+      if (preferencesResult.error) {
+        console.error(
+          'Unable to load cross-device user preferences',
+          preferencesResult.error,
+        )
+      }
+
       if (data.clients.length > 0) {
+        const loadedPreferences = preferencesResult.preferences
         const defaultClient =
           data.clients.find(client => client.hasProjects) ??
           data.clients[0]
-
-        setSelectedClientId(currentId =>
-          data.clients.some(client => client.id === currentId)
-            ? currentId
-            : defaultClient.id,
+        const currentClient = data.clients.find(
+          client => client.id === selectedClientId,
         )
+        const rememberedClient = data.clients.find(
+          client => client.id === loadedPreferences.lastClientId,
+        )
+        const selectedClient =
+          currentClient ?? rememberedClient ?? defaultClient
+        const validClientIds = new Set(
+          data.clients.map(client => client.id),
+        )
+        const recentClientIds = [
+          selectedClient.id,
+          ...loadedPreferences.recentClientIds.filter(
+            clientId => clientId !== selectedClient.id,
+          ),
+        ]
+          .filter(clientId => validClientIds.has(clientId))
+          .slice(0, 5)
+
+        setSelectedClientId(selectedClient.id)
+        setTab(loadedPreferences.lastTab)
+        setUserPreferences({
+          ...loadedPreferences,
+          lastClientId: selectedClient.id,
+          showAllClients:
+            loadedPreferences.showAllClients ||
+            !selectedClient.hasProjects,
+          recentClientIds,
+        })
+        setUserPreferencesReady(!preferencesResult.error)
       }
     } catch (loadError) {
       setError(
@@ -109,6 +177,28 @@ export default function App() {
       )
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function flushPreferenceSaves() {
+    if (preferencesSaveInFlight.current) return
+
+    preferencesSaveInFlight.current = true
+
+    try {
+      while (pendingPreferencesSave.current) {
+        const preferences = pendingPreferencesSave.current
+        pendingPreferencesSave.current = null
+
+        await saveUserPreferences(preferences)
+      }
+    } catch (saveError) {
+      console.error(
+        'Unable to sync cross-device user preferences',
+        saveError,
+      )
+    } finally {
+      preferencesSaveInFlight.current = false
     }
   }
 
@@ -167,12 +257,41 @@ export default function App() {
   const isAdmin =
     currentUser?.userRoles.includes('watchkeeper_admin') ?? false
   const visibleTabs = isAdmin
-    ? tabs
-    : tabs.filter(item => item !== 'Site configuration')
+    ? WATCHKEEPER_TABS
+    : WATCHKEEPER_TABS.filter(item => item !== 'Site configuration')
 
   function changeClient(clientId: string) {
     setSelectedClientId(clientId)
     setTab('Overview')
+    setUserPreferences(current => ({
+      ...current,
+      lastClientId: clientId,
+      lastTab: 'Overview',
+      showAllClients:
+        current.showAllClients ||
+        clientList.some(
+          client => client.id === clientId && !client.hasProjects,
+        ),
+      recentClientIds: [
+        clientId,
+        ...current.recentClientIds.filter(id => id !== clientId),
+      ].slice(0, 5),
+    }))
+  }
+
+  function changeTab(nextTab: WatchkeeperTab) {
+    setTab(nextTab)
+    setUserPreferences(current => ({
+      ...current,
+      lastTab: nextTab,
+    }))
+  }
+
+  function changeClientScope(showAllClients: boolean) {
+    setUserPreferences(current => ({
+      ...current,
+      showAllClients,
+    }))
   }
 
   if (isLoading) {
@@ -234,7 +353,10 @@ export default function App() {
           <ClientPicker
             clients={clientList}
             selectedClientId={selectedClientId}
+            recentClientIds={userPreferences.recentClientIds}
+            showAllClients={userPreferences.showAllClients}
             onChange={changeClient}
+            onShowAllClientsChange={changeClientScope}
           />
           <UserMenu onUserLoaded={setCurrentUser} />
         </div>
@@ -261,7 +383,7 @@ export default function App() {
             <button
               key={item}
               className={tab === item ? 'active' : ''}
-              onClick={() => setTab(item)}
+              onClick={() => changeTab(item)}
             >
               {item}
             </button>
@@ -274,7 +396,7 @@ export default function App() {
               <button
                 className="panel overview-card"
                 type="button"
-                onClick={() => setTab('Devices')}
+                onClick={() => changeTab('Devices')}
               >
                 <p className="eyebrow">DEVICES</p>
                 <h3>{launcherDeviceCount}</h3>
@@ -285,7 +407,7 @@ export default function App() {
               <button
                 className="panel overview-card"
                 type="button"
-                onClick={() => setTab('Documents')}
+                onClick={() => changeTab('Documents')}
               >
                 <p className="eyebrow">DOCUMENTS</p>
                 <h3>SharePoint + Artura</h3>
@@ -296,7 +418,7 @@ export default function App() {
               <button
                 className="panel overview-card"
                 type="button"
-                onClick={() => setTab('Service')}
+                onClick={() => changeTab('Service')}
               >
                 <p className="eyebrow">SERVICE</p>
                 <h3>Jetbuilt</h3>
@@ -308,7 +430,7 @@ export default function App() {
             <SystemHealthDashboard
               clientName={client.name}
               configuredDeviceCount={launcherDeviceCount}
-              onOpenDevices={() => setTab('Devices')}
+              onOpenDevices={() => changeTab('Devices')}
               monitoring={clientSettings.monitoring}
               discovery={clientSettings.discovery}
             />
@@ -322,7 +444,7 @@ export default function App() {
             remoteSupport={clientSettings.remoteSupport}
             onConfigureRemoteSupport={
               isAdmin
-                ? () => setTab('Site configuration')
+                ? () => changeTab('Site configuration')
                 : undefined
             }
           />

@@ -19,16 +19,19 @@ type Client = {
 type ClientPickerProps = {
   clients: Client[]
   selectedClientId: string
+  recentClientIds: string[]
+  showAllClients: boolean
   onChange: (clientId: string) => void
+  onShowAllClientsChange: (showAllClients: boolean) => void
 }
-
-const RECENT_CLIENTS_KEY = 'watchkeeper.recentClientIds'
-const MAX_RECENT_CLIENTS = 5
 
 export default function ClientPicker({
   clients,
   selectedClientId,
+  recentClientIds,
+  showAllClients,
   onChange,
+  onShowAllClientsChange,
 }: ClientPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activeOptionRef = useRef<HTMLButtonElement>(null)
@@ -36,9 +39,6 @@ export default function ClientPicker({
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const [showAllClients, setShowAllClients] = useState(false)
-  const [recentClientIds, setRecentClientIds] =
-    useState<string[]>(loadRecentClientIds)
 
   const selectedClient =
     clients.find(client => client.id === selectedClientId) ??
@@ -75,23 +75,6 @@ export default function ClientPicker({
       )
     }
   }, [])
-
-  useEffect(() => {
-    if (!selectedClientId) {
-      return
-    }
-
-    setRecentClientIds(current => {
-      const next = [
-        selectedClientId,
-        ...current.filter(id => id !== selectedClientId),
-      ].slice(0, MAX_RECENT_CLIENTS)
-
-      saveRecentClientIds(next)
-
-      return next
-    })
-  }, [selectedClientId])
 
   const recentClients = useMemo(
     () =>
@@ -167,7 +150,7 @@ export default function ClientPicker({
   }
 
   function changeClientScope(showAll: boolean) {
-    setShowAllClients(showAll)
+    onShowAllClientsChange(showAll)
     setActiveIndex(0)
 
     if (
@@ -458,37 +441,4 @@ function optionId(clientId: string) {
     /[^a-zA-Z0-9_-]/g,
     '-',
   )}`
-}
-
-function loadRecentClientIds() {
-  try {
-    const value = localStorage.getItem(
-      RECENT_CLIENTS_KEY,
-    )
-
-    if (!value) {
-      return []
-    }
-
-    const parsed = JSON.parse(value)
-
-    return Array.isArray(parsed)
-      ? parsed.filter(
-          item => typeof item === 'string',
-        )
-      : []
-  } catch {
-    return []
-  }
-}
-
-function saveRecentClientIds(ids: string[]) {
-  try {
-    localStorage.setItem(
-      RECENT_CLIENTS_KEY,
-      JSON.stringify(ids),
-    )
-  } catch {
-    // Recent-client history is optional.
-  }
 }
