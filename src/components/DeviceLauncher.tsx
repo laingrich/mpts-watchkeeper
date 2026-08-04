@@ -6,6 +6,7 @@ import {
   type DragEvent,
   type FormEvent,
 } from 'react'
+import type { ClientSettings } from '../clientSettings'
 import saltmarshLauncher from '../data/saltmarsh-device-launcher.json'
 import './DeviceLauncher.css'
 
@@ -71,7 +72,8 @@ type ReachabilityHelperState = 'checking' | 'online' | 'offline'
 type DeviceLauncherProps = {
   siteId: string
   siteName: string
-  onDeviceCountChange?: (count: number) => void
+  remoteSupport: ClientSettings['remoteSupport']
+  onConfigureRemoteSupport?: () => void
 }
 
 type DeviceDraft = {
@@ -131,14 +133,18 @@ function isSaltmarsh(clientName: string) {
   return clientName.trim().toLowerCase() === 'saltmarsh house'
 }
 
+function cloneLauncherValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 function createInitialConfig(clientName: string): LauncherConfig {
   if (isSaltmarsh(clientName)) {
-    return structuredClone(saltmarshSeed)
+    return cloneLauncherValue(saltmarshSeed)
   }
 
   return {
     version: 1,
-    groups: structuredClone(defaultGroups),
+    groups: cloneLauncherValue(defaultGroups),
     devices: [],
   }
 }
@@ -175,10 +181,153 @@ function DetailTable({ details }: { details: DeviceDetails }) {
   )
 }
 
+type RemoteSupportCardProps = {
+  remoteSupport: ClientSettings['remoteSupport']
+  onConfigure?: () => void
+}
+
+function RemoteSupportCard({
+  remoteSupport,
+  onConfigure,
+}: RemoteSupportCardProps) {
+  const details = getRemoteSupportDetails(remoteSupport)
+  const statusLabel = remoteSupport.clientApprovalRequired
+    ? 'Client approval required'
+    : details.statusLabel
+
+  return (
+    <article className="launcher-card launcher-remote-access-card">
+      <div className="launcher-card-main">
+        <div className="launcher-card-copy">
+          <p className="eyebrow">REMOTE ACCESS</p>
+          <h3>
+            {remoteSupport.computerName.trim() || 'Watchkeeper PC'}
+          </h3>
+          <span>{details.methodLabel}</span>
+          <span
+            className={`launcher-device-reachability ${
+              details.configured ? 'not-checkable' : 'unknown'
+            }`}
+          >
+            <span aria-hidden="true" />
+            {statusLabel}
+          </span>
+          <p className="launcher-remote-access-note">
+            {remoteSupport.instructions.trim() ||
+              details.defaultInstructions}
+          </p>
+        </div>
+
+        <div className="launcher-card-actions">
+          {onConfigure && (
+            <button type="button" onClick={onConfigure}>
+              Configure access
+            </button>
+          )}
+
+          {details.href ? (
+            <a
+              href={details.href}
+              target={details.opensInBrowser ? '_blank' : undefined}
+              rel={details.opensInBrowser ? 'noreferrer' : undefined}
+            >
+              {details.actionLabel}
+            </a>
+          ) : (
+            <button
+              className="launcher-open-device-disabled"
+              type="button"
+              disabled
+              title={details.disabledReason}
+            >
+              {details.actionLabel}
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function getRemoteSupportDetails(
+  remoteSupport: ClientSettings['remoteSupport'],
+) {
+  if (remoteSupport.method === 'chrome-remote-desktop') {
+    return {
+      methodLabel: 'Chrome Remote Desktop',
+      statusLabel: 'Configured',
+      defaultInstructions:
+        'Open Chrome Remote Desktop and select this Watchkeeper PC.',
+      configured: true,
+      href: 'https://remotedesktop.google.com/access',
+      actionLabel: 'Open remote desktop',
+      disabledReason: '',
+      opensInBrowser: true,
+    }
+  }
+
+  if (remoteSupport.method === 'rustdesk') {
+    const rustDeskId = remoteSupport.rustDeskId.trim()
+
+    return {
+      methodLabel: rustDeskId
+        ? `RustDesk · ID ${rustDeskId}`
+        : 'RustDesk',
+      statusLabel: rustDeskId ? 'Configured' : 'RustDesk ID required',
+      defaultInstructions: rustDeskId
+        ? 'Open the installed RustDesk client and connect to this Watchkeeper PC.'
+        : 'Add the Watchkeeper PC RustDesk ID in Site configuration.',
+      configured: Boolean(rustDeskId),
+      href: rustDeskId
+        ? `rustdesk://connection/new/${encodeURIComponent(rustDeskId)}`
+        : '',
+      actionLabel: 'Open RustDesk',
+      disabledReason:
+        'Configure the RustDesk ID in Site configuration first.',
+      opensInBrowser: false,
+    }
+  }
+
+  const methodLabels: Record<
+    ClientSettings['remoteSupport']['method'],
+    string
+  > = {
+    none: 'Remote access not configured',
+    'windows-rdp': 'Windows Remote Desktop',
+    'chrome-remote-desktop': 'Chrome Remote Desktop',
+    rustdesk: 'RustDesk',
+    teamviewer: 'TeamViewer',
+    'quick-assist': 'Microsoft Quick Assist',
+    other: 'Other remote-support method',
+  }
+
+  return {
+    methodLabel: methodLabels[remoteSupport.method],
+    statusLabel:
+      remoteSupport.method === 'none' ? 'Not configured' : 'Configured',
+    defaultInstructions:
+      remoteSupport.method === 'none'
+        ? 'Choose Chrome Remote Desktop or RustDesk in Site configuration.'
+        : 'Follow the support instructions configured for this site.',
+    configured: remoteSupport.method !== 'none',
+    href: '',
+    actionLabel:
+      remoteSupport.method === 'none'
+        ? 'Remote access unavailable'
+        : 'Follow instructions',
+    disabledReason:
+      remoteSupport.method === 'none'
+        ? 'Configure remote access in Site configuration first.'
+        : 'This remote-support method does not have a direct launch action.',
+    opensInBrowser: false,
+  }
+}
+
 export default function DeviceLauncher({
   siteId: clientId,
   siteName: clientName,
-  onDeviceCountChange,
+  remoteSupport,
+  onConfigureRemoteSupport,
 }: DeviceLauncherProps) {
   const [config, setConfig] = useState<LauncherConfig | null>(null)
   const [savedConfig, setSavedConfig] = useState<LauncherConfig | null>(null)
@@ -214,12 +363,6 @@ export default function DeviceLauncher({
   useEffect(() => {
     void loadConfig()
   }, [clientId])
-
-  useEffect(() => {
-    if (config) {
-      onDeviceCountChange?.(config.devices.length)
-    }
-  }, [config?.devices.length, onDeviceCountChange])
 
   useEffect(() => {
     if (!config) return
@@ -353,7 +496,7 @@ export default function DeviceLauncher({
       if (response.status === 404) {
         const initial = createInitialConfig(clientName)
         setConfig(initial)
-        setSavedConfig(structuredClone(initial))
+        setSavedConfig(cloneLauncherValue(initial))
         setEtag(null)
         setUpdatedAt(null)
         setUpdatedBy(null)
@@ -366,7 +509,7 @@ export default function DeviceLauncher({
 
       const data = (await response.json()) as ConfigResponse
       setConfig(data.config)
-      setSavedConfig(structuredClone(data.config))
+      setSavedConfig(cloneLauncherValue(data.config))
       setEtag(data.etag)
       setUpdatedAt(data.updatedAt)
       setUpdatedBy(data.updatedBy)
@@ -385,6 +528,21 @@ export default function DeviceLauncher({
     if (!config) return []
 
     const normalised = query.trim().toLowerCase()
+    const remoteAccessMatches =
+      !normalised ||
+      [
+        'Watchkeeper PC',
+        'remote access',
+        'Chrome Remote Desktop',
+        'RustDesk',
+        remoteSupport.method,
+        remoteSupport.computerName,
+        remoteSupport.rustDeskId,
+        remoteSupport.instructions,
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalised)
 
     return config.groups
       .map(group => {
@@ -400,10 +558,20 @@ export default function DeviceLauncher({
             .includes(normalised)
         })
 
-        return { group, devices }
+        return {
+          group,
+          devices,
+          showRemoteAccessCard:
+            group.id === 'management' && remoteAccessMatches,
+        }
       })
-      .filter(item => item.devices.length > 0 || isEditing)
-  }, [config, query, isEditing])
+      .filter(
+        item =>
+          item.devices.length > 0 ||
+          item.showRemoteAccessCard ||
+          isEditing,
+      )
+  }, [config, query, isEditing, remoteSupport])
 
   const reachabilitySummary = useMemo(() => {
     if (!config) return 'Checking device availability…'
@@ -531,14 +699,14 @@ export default function DeviceLauncher({
   }
 
   function beginEditing() {
-    setSavedConfig(structuredClone(config))
+    setSavedConfig(cloneLauncherValue(config))
     setIsEditing(true)
     setError(null)
   }
 
   function cancelEditing() {
     if (savedConfig) {
-      setConfig(structuredClone(savedConfig))
+      setConfig(cloneLauncherValue(savedConfig))
     }
 
     setIsEditing(false)
@@ -583,7 +751,7 @@ export default function DeviceLauncher({
 
       const data = (await response.json()) as ConfigResponse
       setConfig(data.config)
-      setSavedConfig(structuredClone(data.config))
+      setSavedConfig(cloneLauncherValue(data.config))
       setEtag(data.etag)
       setUpdatedAt(data.updatedAt)
       setUpdatedBy(data.updatedBy)
@@ -626,7 +794,7 @@ export default function DeviceLauncher({
   function editDevice(device: LauncherDevice) {
     setDeviceDraft({
       mode: 'edit',
-      device: structuredClone(device),
+      device: cloneLauncherValue(device),
       hasMap: Boolean(device.details),
       mapRowsText: device.details
         ? serialiseRows(device.details.rows)
@@ -721,7 +889,7 @@ export default function DeviceLauncher({
   function editGroup(group: LauncherGroup) {
     setGroupDraft({
       mode: 'edit',
-      group: structuredClone(group),
+      group: cloneLauncherValue(group),
     })
   }
 
@@ -851,7 +1019,10 @@ export default function DeviceLauncher({
   }
 
   return (
-    <section className="launcher">
+    <section
+      className="launcher"
+      key={isEditing ? 'editing' : 'viewing'}
+    >
       <div className="launcher-editor-bar">
         <div>
           <strong>{config.devices.length} devices</strong>
@@ -942,8 +1113,10 @@ export default function DeviceLauncher({
           <p>Try another device, group, room, zone or outlet.</p>
         </article>
       ) : (
-        visibleGroups.map(({ group, devices }, groupIndex) => {
+        visibleGroups.map(({ group, devices, showRemoteAccessCard }, groupIndex) => {
           const collapsed = collapsedGroups.has(group.id)
+          const itemCount =
+            devices.length + (showRemoteAccessCard ? 1 : 0)
 
           return (
             <section
@@ -964,7 +1137,10 @@ export default function DeviceLauncher({
                     <span className="launcher-group-dot" />
                     {group.title}
                   </span>
-                  <small>{devices.length} devices</small>
+                  <small>
+                    {itemCount}{' '}
+                    {showRemoteAccessCard ? 'items' : 'devices'}
+                  </small>
                   <strong aria-hidden="true">
                     {collapsed ? '+' : '−'}
                   </strong>
@@ -1013,6 +1189,13 @@ export default function DeviceLauncher({
 
               {!collapsed && (
                 <div className="launcher-grid">
+                  {showRemoteAccessCard && (
+                    <RemoteSupportCard
+                      remoteSupport={remoteSupport}
+                      onConfigure={onConfigureRemoteSupport}
+                    />
+                  )}
+
                   {devices.map(device => {
                     const mapOpen = expandedMaps.has(device.id)
                     const reachability =
@@ -1050,7 +1233,10 @@ export default function DeviceLauncher({
                           .filter(Boolean)
                           .join(' ')}
                         key={device.id}
-                        draggable={isEditing}
+                        draggable={
+                          isEditing &&
+                          window.matchMedia('(pointer: fine)').matches
+                        }
                         onDragStart={() =>
                           setDraggedDeviceId(device.id)
                         }
@@ -1453,7 +1639,14 @@ export default function DeviceLauncher({
 
 function createDeviceId(title: string) {
   const slug = slugify(title) || 'device'
-  return `dev-${slug}-${crypto.randomUUID().slice(0, 8)}`
+  const randomPart =
+    typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().slice(0, 8)
+      : Array.from(crypto.getRandomValues(new Uint8Array(4)))
+          .map(value => value.toString(16).padStart(2, '0'))
+          .join('')
+
+  return `dev-${slug}-${randomPart}`
 }
 
 function createGroupId(

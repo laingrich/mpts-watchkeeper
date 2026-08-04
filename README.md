@@ -5,7 +5,8 @@ Initial deployable frontend for Azure Static Web Apps.
 ## Included
 
 - Saltmarsh House site view
-- Overview, Devices, Documents and Issues sections
+- Overview, Devices, Documents and Service sections
+- Cross-device user preferences for the last client, tab and client picker
 - Searchable device launcher
 - Responsive desktop/mobile layout
 - Static Web Apps navigation fallback
@@ -19,6 +20,9 @@ Initial deployable frontend for Azure Static Web Apps.
 
    npm install
    npm run dev
+
+For the full local API environment, set `WATCHKEEPER_USER_PREFERENCES_CONTAINER`
+in `api/local.settings.json` to a development-only container name.
 
 ## Build
 

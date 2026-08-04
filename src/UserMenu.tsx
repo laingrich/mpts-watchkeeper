@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export type ClientPrincipal = {
   identityProvider: string
@@ -31,6 +31,8 @@ export default function UserMenu({
   onUserLoaded,
 }: UserMenuProps) {
   const [user, setUser] = useState<ClientPrincipal | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function loadUser() {
@@ -55,29 +57,83 @@ export default function UserMenu({
     void loadUser()
   }, [onUserLoaded])
 
+  useEffect(() => {
+    function closeWhenClickingOutside(event: PointerEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', closeWhenClickingOutside)
+    document.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.removeEventListener(
+        'pointerdown',
+        closeWhenClickingOutside,
+      )
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [])
+
   if (!user) {
     return null
   }
 
   return (
-    <div className="user-menu">
-      <div className="user-identity">
+    <div className="user-menu" ref={menuRef}>
+      <button
+        className="user-menu-trigger"
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label={`Account menu for ${user.userDetails}`}
+        onClick={() => setIsOpen(current => !current)}
+      >
         <span className="user-avatar">
           {user.userDetails.charAt(0).toUpperCase()}
         </span>
 
-        <div>
+        <span className="user-identity-copy">
           <span className="user-label">
             {getRoleLabel(user).toUpperCase()}
           </span>
 
           <strong>{user.userDetails}</strong>
-        </div>
-      </div>
+        </span>
 
-      <a className="sign-out-button" href="/logout">
-        Sign out
-      </a>
+        <span className="user-menu-chevron" aria-hidden="true">
+          {isOpen ? '▲' : '▼'}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="user-menu-popover" role="menu">
+          <div className="user-menu-account">
+            <span className="user-label">
+              {getRoleLabel(user).toUpperCase()}
+            </span>
+            <strong>{user.userDetails}</strong>
+          </div>
+
+          <a
+            className="sign-out-button"
+            href="/logout"
+            role="menuitem"
+          >
+            Sign out
+          </a>
+        </div>
+      )}
     </div>
   )
 }

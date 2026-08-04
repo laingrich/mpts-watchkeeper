@@ -66,6 +66,7 @@ const remoteSupportMethods: [RemoteSupportMethod, string][] = [
   ['none', 'Not configured'],
   ['windows-rdp', 'Windows Remote Desktop'],
   ['chrome-remote-desktop', 'Chrome Remote Desktop'],
+  ['rustdesk', 'RustDesk'],
   ['teamviewer', 'TeamViewer'],
   ['quick-assist', 'Microsoft Quick Assist'],
   ['other', 'Other'],
@@ -676,6 +677,54 @@ export default function SiteConfiguration({
               />
             </div>
 
+            {(settings.remoteSupport.method ===
+              'chrome-remote-desktop' ||
+              settings.remoteSupport.method === 'rustdesk') && (
+              <label className="site-config-field">
+                <span>Watchkeeper PC name</span>
+                <input
+                  value={settings.remoteSupport.computerName}
+                  placeholder="For example MPTS-Saltmarsh"
+                  onChange={event =>
+                    updateSettings(current => ({
+                      ...current,
+                      remoteSupport: {
+                        ...current.remoteSupport,
+                        computerName: event.target.value,
+                      },
+                    }))
+                  }
+                />
+                <small>
+                  Use the name engineers will see in the remote-access
+                  application.
+                </small>
+              </label>
+            )}
+
+            {settings.remoteSupport.method === 'rustdesk' && (
+              <label className="site-config-field">
+                <span>RustDesk ID</span>
+                <input
+                  value={settings.remoteSupport.rustDeskId}
+                  placeholder="The ID shown on the Watchkeeper PC"
+                  onChange={event =>
+                    updateSettings(current => ({
+                      ...current,
+                      remoteSupport: {
+                        ...current.remoteSupport,
+                        rustDeskId: event.target.value,
+                      },
+                    }))
+                  }
+                />
+                <small>
+                  Used to launch the installed RustDesk client. Passwords and
+                  access keys are not stored in Watchkeeper.
+                </small>
+              </label>
+            )}
+
             <label className="site-config-field full-width">
               <span>Support instructions</span>
               <textarea
@@ -693,6 +742,29 @@ export default function SiteConfiguration({
               />
             </label>
           </div>
+
+          {settings.remoteSupport.method ===
+            'chrome-remote-desktop' && (
+            <div className="site-config-guidance compact">
+              <strong>Chrome Remote Desktop access</strong>
+              <p>
+                The Devices card opens the Chrome Remote Desktop access page.
+                Engineers sign in with their authorised Google account and
+                select the configured Watchkeeper PC.
+              </p>
+            </div>
+          )}
+
+          {settings.remoteSupport.method === 'rustdesk' && (
+            <div className="site-config-guidance compact">
+              <strong>RustDesk access</strong>
+              <p>
+                The Devices card opens the installed RustDesk client with this
+                ID. Unattended-access credentials remain in the approved
+                password manager, not in Watchkeeper.
+              </p>
+            </div>
+          )}
         </section>
 
         <section className="panel site-config-section">

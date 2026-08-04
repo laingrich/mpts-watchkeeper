@@ -24,12 +24,13 @@ export type RemoteSupportMethod =
   | 'none'
   | 'windows-rdp'
   | 'chrome-remote-desktop'
+  | 'rustdesk'
   | 'teamviewer'
   | 'quick-assist'
   | 'other'
 
 export type ClientSettings = {
-  schemaVersion: 2
+  schemaVersion: 3
   sharePointUrl: string
   arturaUrl: string
   site: {
@@ -58,6 +59,8 @@ export type ClientSettings = {
   }
   remoteSupport: {
     method: RemoteSupportMethod
+    computerName: string
+    rustDeskId: string
     clientApprovalRequired: boolean
     instructions: string
   }
@@ -87,7 +90,7 @@ type LegacyDiscovery = Partial<ClientSettings['discovery']> & {
 
 export function createDefaultClientSettings(): ClientSettings {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     sharePointUrl: '',
     arturaUrl: 'https://app.artura.io',
     site: {
@@ -116,6 +119,8 @@ export function createDefaultClientSettings(): ClientSettings {
     },
     remoteSupport: {
       method: 'none',
+      computerName: '',
+      rustDeskId: '',
       clientApprovalRequired: false,
       instructions: '',
     },
@@ -146,7 +151,7 @@ export function normaliseClientSettings(
   return {
     ...defaults,
     ...input,
-    schemaVersion: 2,
+    schemaVersion: 3,
     sharePointUrl:
       typeof input.sharePointUrl === 'string'
         ? input.sharePointUrl

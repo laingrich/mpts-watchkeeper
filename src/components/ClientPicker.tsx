@@ -13,21 +13,25 @@ type Client = {
   name: string
   active: boolean | null
   updatedAt: string | null
+  hasProjects: boolean
 }
 
 type ClientPickerProps = {
   clients: Client[]
   selectedClientId: string
+  recentClientIds: string[]
+  showAllClients: boolean
   onChange: (clientId: string) => void
+  onShowAllClientsChange: (showAllClients: boolean) => void
 }
-
-const RECENT_CLIENTS_KEY = 'watchkeeper.recentClientIds'
-const MAX_RECENT_CLIENTS = 5
 
 export default function ClientPicker({
   clients,
   selectedClientId,
+  recentClientIds,
+  showAllClients,
   onChange,
+  onShowAllClientsChange,
 }: ClientPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activeOptionRef = useRef<HTMLButtonElement>(null)
@@ -35,12 +39,19 @@ export default function ClientPicker({
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const [recentClientIds, setRecentClientIds] =
-    useState<string[]>(loadRecentClientIds)
 
   const selectedClient =
     clients.find(client => client.id === selectedClientId) ??
     clients[0]
+
+  const projectClients = useMemo(
+    () => clients.filter(client => client.hasProjects),
+    [clients],
+  )
+
+  const visibleClients = showAllClients
+    ? clients
+    : projectClients
 
   useEffect(() => {
     function closeWhenClickingOutside(event: PointerEvent) {
@@ -65,48 +76,31 @@ export default function ClientPicker({
     }
   }, [])
 
-  useEffect(() => {
-    if (!selectedClientId) {
-      return
-    }
-
-    setRecentClientIds(current => {
-      const next = [
-        selectedClientId,
-        ...current.filter(id => id !== selectedClientId),
-      ].slice(0, MAX_RECENT_CLIENTS)
-
-      saveRecentClientIds(next)
-
-      return next
-    })
-  }, [selectedClientId])
-
   const recentClients = useMemo(
     () =>
       recentClientIds
-        .map(id => clients.find(client => client.id === id))
+        .map(id => visibleClients.find(client => client.id === id))
         .filter((client): client is Client => Boolean(client)),
-    [clients, recentClientIds],
+    [recentClientIds, visibleClients],
   )
 
   const normalisedQuery = query.trim().toLowerCase()
 
   const filteredClients = useMemo(() => {
     if (!normalisedQuery) {
-      return clients
+      return visibleClients
     }
 
-    return clients.filter(client =>
+    return visibleClients.filter(client =>
       client.name.toLowerCase().includes(normalisedQuery),
     )
-  }, [clients, normalisedQuery])
+  }, [normalisedQuery, visibleClients])
 
   const remainingClients = useMemo(() => {
     const recentIds = new Set(recentClients.map(client => client.id))
 
-    return clients.filter(client => !recentIds.has(client.id))
-  }, [clients, recentClients])
+    return visibleClients.filter(client => !recentIds.has(client.id))
+  }, [recentClients, visibleClients])
 
   const keyboardClients = useMemo(
     () =>
@@ -153,6 +147,20 @@ export default function ClientPicker({
   function selectClient(clientId: string) {
     onChange(clientId)
     closePicker()
+  }
+
+  function changeClientScope(showAll: boolean) {
+    onShowAllClientsChange(showAll)
+    setActiveIndex(0)
+
+    if (
+      !showAll &&
+      selectedClient &&
+      !selectedClient.hasProjects &&
+      projectClients[0]
+    ) {
+      onChange(projectClients[0].id)
+    }
   }
 
   function handleKeyboard(event: KeyboardEvent<HTMLElement>) {
@@ -265,6 +273,23 @@ export default function ClientPicker({
             />
           </div>
 
+          <label
+            className="client-picker-scope"
+            onKeyDown={event => event.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={showAllClients}
+              onChange={event => changeClientScope(event.target.checked)}
+            />
+            <span>
+              <strong>Show all clients</strong>
+              <small>
+                Otherwise only clients with Jetbuilt projects are shown
+              </small>
+            </span>
+          </label>
+
           <div
             id="client-picker-results"
             className="client-picker-results"
@@ -294,7 +319,9 @@ export default function ClientPicker({
               title={
                 normalisedQuery
                   ? `${filteredClients.length} results`
-                  : 'All clients'
+                  : showAllClients
+                    ? 'All clients'
+                    : 'Clients with projects'
               }
               clients={
                 normalisedQuery
@@ -318,14 +345,17 @@ export default function ClientPicker({
 
             {keyboardClients.length === 0 && (
               <div className="client-picker-empty">
-                No clients match “{query}”
+                {normalisedQuery
+                  ? `No clients match “${query}”`
+                  : 'No clients with Jetbuilt projects found'}
               </div>
             )}
           </div>
 
           <footer>
             <span>
-              {clients.length} Jetbuilt clients · Use ↑ ↓ and Enter
+              {visibleClients.length} of {clients.length} Jetbuilt clients ·
+              Use ↑ ↓ and Enter
             </span>
           </footer>
         </section>
@@ -411,37 +441,4 @@ function optionId(clientId: string) {
     /[^a-zA-Z0-9_-]/g,
     '-',
   )}`
-}
-
-function loadRecentClientIds() {
-  try {
-    const value = localStorage.getItem(
-      RECENT_CLIENTS_KEY,
-    )
-
-    if (!value) {
-      return []
-    }
-
-    const parsed = JSON.parse(value)
-
-    return Array.isArray(parsed)
-      ? parsed.filter(
-          item => typeof item === 'string',
-        )
-      : []
-  } catch {
-    return []
-  }
-}
-
-function saveRecentClientIds(ids: string[]) {
-  try {
-    localStorage.setItem(
-      RECENT_CLIENTS_KEY,
-      JSON.stringify(ids),
-    )
-  } catch {
-    // Recent-client history is optional.
-  }
 }
