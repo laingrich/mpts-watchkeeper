@@ -577,7 +577,7 @@ export default function DeviceLauncher({
     if (!config) return 'Checking device availability…'
 
     if (reachabilityHelper === 'offline') {
-      return 'Device availability is unavailable because the local Watchkeeper helper is not running.'
+      return 'Device status is unavailable because automatic checks are not supported on this device.'
     }
 
     if (reachabilityHelper === 'checking') {
@@ -1211,12 +1211,12 @@ export default function DeviceLauncher({
                           : reachability === 'not-checkable'
                             ? 'Launch link'
                             : reachability === 'unknown'
-                              ? 'Status unavailable'
+                              ? 'Device status unavailable'
                               : 'Checking…'
                     const reachabilityTitle =
                       reachabilityMessages[device.id] ||
                       (reachability === 'unknown'
-                        ? 'The local Watchkeeper helper is not available'
+                        ? 'Automatic device status is unavailable on this device'
                         : reachability === 'unreachable'
                           ? 'This device cannot currently be reached from this computer'
                           : reachabilityLabel)

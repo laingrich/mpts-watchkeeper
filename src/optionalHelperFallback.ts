@@ -21,9 +21,9 @@ function applyOptionalHelperFallback() {
 
       if (!status) return
 
-      const fallbackLabel = 'Status not checked'
+      const fallbackLabel = 'Device status unavailable'
       const fallbackTitle =
-        'Automatic reachability checking is unavailable on this device'
+        'Automatic device status is unavailable on this device'
 
       if (status.textContent?.trim() !== fallbackLabel) {
         status.lastChild?.remove()
@@ -50,7 +50,7 @@ function applyOptionalHelperFallback() {
       link.target = '_blank'
       link.rel = 'noreferrer'
       link.title =
-        'Open this device directly. Its status has not been checked from this browser.'
+        'Open this device directly. Device status is unavailable in this browser.'
       link.textContent = 'Open device'
       disabledButton.replaceWith(link)
     })
