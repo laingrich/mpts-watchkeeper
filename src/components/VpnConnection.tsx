@@ -316,7 +316,7 @@ export default function VpnConnection({
       : state === 'unconfigured'
       ? 'Profile missing'
       : state === 'helper-unavailable'
-      ? 'Access not checked'
+      ? 'Connection status unavailable'
       : 'Disconnected'
 
   const disabled =
@@ -350,9 +350,9 @@ export default function VpnConnection({
             href={getWiFimanUrl()}
             target="_blank"
             rel="noreferrer"
-            title="Open or install WiFiman to connect through Teleport"
+            title={`Get or open WiFiman, then choose ${clientName} under Teleport`}
           >
-            Open WiFiman
+            Get/Open WiFiman
           </a>
         ) : (
           <button
