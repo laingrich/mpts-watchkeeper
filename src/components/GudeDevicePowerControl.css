@@ -1,0 +1,32 @@
+.gude-device-power {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px 20px 16px;
+}
+
+.gude-device-power-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.gude-device-power-copy p {
+  margin: 0;
+}
+
+.gude-device-power-copy span {
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.gude-device-power .gude-control-error {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 620px) {
+  .gude-device-power {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,6 +8,9 @@ import {
 } from 'react'
 import type { ClientSettings } from '../clientSettings'
 import saltmarshLauncher from '../data/saltmarsh-device-launcher.json'
+import GudeDevicePowerControl from './GudeDevicePowerControl'
+import GudeOutletAssignment from './GudeOutletAssignment'
+import GudePowerControl from './GudePowerControl'
 import './DeviceLauncher.css'
 
 type DetailCell = string | number | string[]
@@ -25,6 +28,14 @@ type LauncherDevice = {
   link: string
   group: string
   details?: DeviceDetails
+  powerControl?: {
+    provider: 'gude'
+    model: string
+  }
+  powerOutlet?: {
+    gudeDeviceId: string
+    port: number
+  }
 }
 
 type LauncherGroup = {
@@ -73,6 +84,8 @@ type DeviceLauncherProps = {
   siteId: string
   siteName: string
   remoteSupport: ClientSettings['remoteSupport']
+  canEditLauncher: boolean
+  canEditPowerPortNames: boolean
   onConfigureRemoteSupport?: () => void
 }
 
@@ -80,6 +93,7 @@ type DeviceDraft = {
   mode: 'add' | 'edit'
   device: LauncherDevice
   hasMap: boolean
+  hasPowerOutlet: boolean
   mapRowsText: string
 }
 
@@ -139,13 +153,47 @@ function cloneLauncherValue<T>(value: T): T {
 
 function createInitialConfig(clientName: string): LauncherConfig {
   if (isSaltmarsh(clientName)) {
-    return cloneLauncherValue(saltmarshSeed)
+    return applySeedIntegrations(
+      cloneLauncherValue(saltmarshSeed),
+      clientName,
+    )
   }
 
   return {
     version: 1,
     groups: cloneLauncherValue(defaultGroups),
     devices: [],
+  }
+}
+
+function applySeedIntegrations(
+  config: LauncherConfig,
+  clientName: string,
+): LauncherConfig {
+  if (!isSaltmarsh(clientName)) return config
+
+  const seedDevices = new Map(
+    saltmarshSeed.devices.map(device => [device.id, device]),
+  )
+
+  return {
+    ...config,
+    devices: config.devices.map(device => {
+      const seed = seedDevices.get(device.id)
+      if (!seed?.powerControl && !seed?.powerOutlet) return device
+
+      const deviceWithoutOutletMap = { ...device }
+      if (seed.powerControl) delete deviceWithoutOutletMap.details
+      return {
+        ...deviceWithoutOutletMap,
+        ...(seed.powerControl
+          ? { powerControl: device.powerControl ?? seed.powerControl }
+          : {}),
+        ...(seed.powerOutlet
+          ? { powerOutlet: device.powerOutlet ?? seed.powerOutlet }
+          : {}),
+      }
+    }),
   }
 }
 
@@ -327,6 +375,8 @@ export default function DeviceLauncher({
   siteId: clientId,
   siteName: clientName,
   remoteSupport,
+  canEditLauncher,
+  canEditPowerPortNames,
   onConfigureRemoteSupport,
 }: DeviceLauncherProps) {
   const [config, setConfig] = useState<LauncherConfig | null>(null)
@@ -339,6 +389,8 @@ export default function DeviceLauncher({
     useState<Set<string>>(new Set())
   const [expandedMaps, setExpandedMaps] =
     useState<Set<string>>(new Set())
+  const [expandedPowerDevices, setExpandedPowerDevices] =
+    useState<Set<string>>(new Set())
   const [deviceDraft, setDeviceDraft] =
     useState<DeviceDraft | null>(null)
   const [groupDraft, setGroupDraft] =
@@ -348,6 +400,7 @@ export default function DeviceLauncher({
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [savingPowerDeviceId, setSavingPowerDeviceId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deviceReachability, setDeviceReachability] = useState<
     Record<string, DeviceReachability>
@@ -481,6 +534,7 @@ export default function DeviceLauncher({
     setIsLoading(true)
     setError(null)
     setExpandedMaps(new Set())
+    setExpandedPowerDevices(new Set())
     setIsEditing(false)
 
     try {
@@ -508,8 +562,12 @@ export default function DeviceLauncher({
       }
 
       const data = (await response.json()) as ConfigResponse
-      setConfig(data.config)
-      setSavedConfig(cloneLauncherValue(data.config))
+      const loadedConfig = applySeedIntegrations(
+        data.config,
+        clientName,
+      )
+      setConfig(loadedConfig)
+      setSavedConfig(cloneLauncherValue(loadedConfig))
       setEtag(data.etag)
       setUpdatedAt(data.updatedAt)
       setUpdatedBy(data.updatedBy)
@@ -607,19 +665,50 @@ export default function DeviceLauncher({
     reachabilityHelper,
   ])
 
+  const gudePowerSources = useMemo(() => (
+    config?.devices
+      .filter(device => device.powerControl)
+      .map(device => ({ deviceId: device.id, title: device.title })) ?? []
+  ), [config])
+
+  const existingPowerAssignments = useMemo(() => (
+    config?.devices.flatMap(device => device.powerOutlet
+      ? [{
+          deviceId: device.id,
+          deviceTitle: device.title,
+          gudeDeviceId: device.powerOutlet.gudeDeviceId,
+          port: device.powerOutlet.port,
+        }]
+      : []) ?? []
+  ), [config])
+
   const mappedDeviceIds = useMemo(
-    () =>
-      new Set(
-        config?.devices
-          .filter(device => device.details)
-          .map(device => device.id) ?? [],
-      ),
+    () => new Set(
+      config?.devices
+        .filter(device => device.details || device.powerControl)
+        .map(device => device.id) ?? [],
+    ),
     [config],
+  )
+
+  const powerDeviceIds = useMemo(
+    () => new Set(
+      config?.devices
+        .filter(device =>
+          !device.powerControl &&
+          (Boolean(device.powerOutlet) || canEditLauncher),
+        )
+        .map(device => device.id) ?? [],
+    ),
+    [canEditLauncher, config],
   )
 
   const allMapsOpen =
     mappedDeviceIds.size > 0 &&
     [...mappedDeviceIds].every(id => expandedMaps.has(id))
+  const allPowerOpen =
+    powerDeviceIds.size > 0 &&
+    [...powerDeviceIds].every(id => expandedPowerDevices.has(id))
 
   if (isLoading) {
     return (
@@ -676,24 +765,44 @@ export default function DeviceLauncher({
     })
   }
 
+  function toggleDevicePower(deviceId: string) {
+    setExpandedPowerDevices(current => {
+      const next = new Set(current)
+      next.has(deviceId) ? next.delete(deviceId) : next.add(deviceId)
+      return next
+    })
+  }
+
   function toggleAllMaps() {
-    if (!config) return
-    if (allMapsOpen) {
-      setExpandedMaps(new Set())
-      return
+    setExpandedMaps(allMapsOpen ? new Set() : new Set(mappedDeviceIds))
+
+    if (!allMapsOpen) {
+      expandGroupsForDevices(mappedDeviceIds)
     }
+  }
 
-    setExpandedMaps(new Set(mappedDeviceIds))
+  function toggleAllPower() {
+    setExpandedPowerDevices(
+      allPowerOpen ? new Set() : new Set(powerDeviceIds),
+    )
 
-    const groupsWithMaps = new Set(
+    if (!allPowerOpen) {
+      expandGroupsForDevices(powerDeviceIds)
+    }
+  }
+
+  function expandGroupsForDevices(deviceIds: Set<string>) {
+    if (!config) return
+
+    const groupIds = new Set(
       config.devices
-        .filter(device => device.details)
+        .filter(device => deviceIds.has(device.id))
         .map(device => device.group),
     )
 
     setCollapsedGroups(current => {
       const next = new Set(current)
-      groupsWithMaps.forEach(groupId => next.delete(groupId))
+      groupIds.forEach(groupId => next.delete(groupId))
       return next
     })
   }
@@ -769,6 +878,61 @@ export default function DeviceLauncher({
     }
   }
 
+  async function assignPowerOutlet(
+    deviceId: string,
+    gudeDeviceId: string,
+    port: number,
+  ) {
+    if (!canEditLauncher || !config) return
+
+    const nextConfig: LauncherConfig = {
+      ...config,
+      devices: config.devices.map(device => device.id === deviceId
+        ? { ...device, powerOutlet: { gudeDeviceId, port } }
+        : device),
+    }
+    setSavingPowerDeviceId(deviceId)
+    setError(null)
+
+    try {
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      }
+      if (etag) headers['If-Match'] = etag
+
+      const response = await fetch(
+        `/api/device-config/${encodeURIComponent(clientId)}`,
+        {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(nextConfig),
+        },
+      )
+
+      if (response.status === 409 || response.status === 412) {
+        throw new Error(
+          'Another user changed the launcher. Reload it before assigning this outlet.',
+        )
+      }
+      if (!response.ok) throw new Error(await readError(response))
+
+      const data = (await response.json()) as ConfigResponse
+      const loadedConfig = applySeedIntegrations(data.config, clientName)
+      setConfig(loadedConfig)
+      setSavedConfig(cloneLauncherValue(loadedConfig))
+      setEtag(data.etag)
+      setUpdatedAt(data.updatedAt)
+      setUpdatedBy(data.updatedBy)
+    } catch (saveError) {
+      setError(saveError instanceof Error
+        ? saveError.message
+        : 'Unable to assign the GUDE outlet')
+    } finally {
+      setSavingPowerDeviceId(null)
+    }
+  }
+
   function addDevice(groupId?: string) {
     if (!config) return
     const group = groupId ?? config.groups[0]?.id
@@ -787,6 +951,7 @@ export default function DeviceLauncher({
         group,
       },
       hasMap: false,
+      hasPowerOutlet: false,
       mapRowsText: '',
     })
   }
@@ -796,6 +961,7 @@ export default function DeviceLauncher({
       mode: 'edit',
       device: cloneLauncherValue(device),
       hasMap: Boolean(device.details),
+      hasPowerOutlet: Boolean(device.powerOutlet),
       mapRowsText: device.details
         ? serialiseRows(device.details.rows)
         : '',
@@ -837,6 +1003,8 @@ export default function DeviceLauncher({
       delete device.details
     }
 
+    if (!deviceDraft.hasPowerOutlet) delete device.powerOutlet
+
     setConfig(current => {
       if (!current) return current
 
@@ -869,6 +1037,11 @@ export default function DeviceLauncher({
     )
 
     setExpandedMaps(current => {
+      const next = new Set(current)
+      next.delete(device.id)
+      return next
+    })
+    setExpandedPowerDevices(current => {
       const next = new Set(current)
       next.delete(device.id)
       return next
@@ -1035,7 +1208,7 @@ export default function DeviceLauncher({
           </span>
         </div>
 
-        <div className="launcher-editor-actions">
+        {canEditLauncher && <div className="launcher-editor-actions">
           {isEditing ? (
             <>
               <button type="button" onClick={addGroup}>
@@ -1065,7 +1238,7 @@ export default function DeviceLauncher({
               Edit launcher
             </button>
           )}
-        </div>
+        </div>}
       </div>
 
       {error && (
@@ -1099,6 +1272,13 @@ export default function DeviceLauncher({
             onClick={toggleAllMaps}
           >
             {allMapsOpen ? 'Close all maps' : 'Open all maps'}
+          </button>
+          <button
+            type="button"
+            disabled={powerDeviceIds.size === 0}
+            onClick={toggleAllPower}
+          >
+            {allPowerOpen ? 'Close all power' : 'Open all power'}
           </button>
         </div>
       </div>
@@ -1198,6 +1378,12 @@ export default function DeviceLauncher({
 
                   {devices.map(device => {
                     const mapOpen = expandedMaps.has(device.id)
+                    const devicePowerOpen = expandedPowerDevices.has(device.id)
+                    const powerSource = device.powerOutlet
+                      ? config.devices.find(
+                          item => item.id === device.powerOutlet?.gudeDeviceId,
+                        )
+                      : null
                     const reachability =
                       deviceReachability[device.id] ?? 'checking'
                     const canOpenDevice =
@@ -1226,6 +1412,7 @@ export default function DeviceLauncher({
                         className={[
                           'launcher-card',
                           mapOpen ? 'map-open' : '',
+                          devicePowerOpen ? 'power-open' : '',
                           draggedDeviceId === device.id
                             ? 'dragging'
                             : '',
@@ -1251,12 +1438,17 @@ export default function DeviceLauncher({
                         <div className="launcher-card-main">
                           <div className="launcher-card-copy">
                             <p className="eyebrow">
-                              {device.details
+                              {device.powerControl
+                                ? 'Power control'
+                                : device.details
                                 ? device.details.title
                                 : group.title}
                             </p>
                             <h3>{device.title}</h3>
                             <span>{device.link}</span>
+                            {device.powerControl && (
+                              <span>{device.powerControl.model}</span>
+                            )}
                             {!isEditing && (
                               <span
                                 className={`launcher-device-reachability ${reachability}`}
@@ -1293,12 +1485,30 @@ export default function DeviceLauncher({
                               </>
                             ) : (
                               <>
-                                {device.details && (
+                                {(device.details || device.powerControl) && (
                                   <button
                                     type="button"
                                     onClick={() => toggleMap(device.id)}
                                   >
-                                    {mapOpen ? 'Hide map' : 'Show map'}
+                                    {device.powerControl
+                                      ? mapOpen
+                                        ? 'Hide ports'
+                                        : 'Show ports'
+                                      : mapOpen
+                                        ? 'Hide map'
+                                        : 'Show map'}
+                                  </button>
+                                )}
+                                {!device.powerControl && (
+                                  <button
+                                    type="button"
+                                    disabled={!device.powerOutlet && !canEditLauncher}
+                                    title={!device.powerOutlet && !canEditLauncher
+                                      ? 'No GUDE outlet has been assigned to this device'
+                                      : undefined}
+                                    onClick={() => toggleDevicePower(device.id)}
+                                  >
+                                    {devicePowerOpen ? 'Hide power' : 'Power'}
                                   </button>
                                 )}
                                 {canOpenDevice ? (
@@ -1325,24 +1535,49 @@ export default function DeviceLauncher({
                           </div>
                         </div>
 
-                        {device.details && mapOpen && (
+                        {(device.details || device.powerControl) && mapOpen && (
                           <div className="launcher-inline-map">
-                            <div className="launcher-inline-map-heading">
-                              <div>
-                                <p className="eyebrow">
-                                  {device.details.title}
-                                </p>
-                                <h4>{device.title}</h4>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => toggleMap(device.id)}
-                              >
-                                Close map
-                              </button>
-                            </div>
-                            <DetailTable details={device.details} />
+                            {device.powerControl ? (
+                              <GudePowerControl
+                                clientId={clientId}
+                                deviceId={device.id}
+                                deviceTitle={device.title}
+                                configuredModel={device.powerControl.model}
+                                canEditNames={canEditPowerPortNames}
+                              />
+                            ) : device.details ? (
+                              <DetailTable details={device.details} />
+                            ) : null}
                           </div>
+                        )}
+
+                        {!device.powerControl && devicePowerOpen && (
+                          device.powerOutlet ? (
+                            <GudeDevicePowerControl
+                              clientId={clientId}
+                              deviceTitle={device.title}
+                              gudeDeviceId={device.powerOutlet.gudeDeviceId}
+                              gudeDeviceTitle={
+                                powerSource?.title ||
+                                device.powerOutlet.gudeDeviceId
+                              }
+                              portNumber={device.powerOutlet.port}
+                            />
+                          ) : canEditLauncher ? (
+                            <GudeOutletAssignment
+                              clientId={clientId}
+                              deviceTitle={device.title}
+                              sources={gudePowerSources}
+                              assignments={existingPowerAssignments}
+                              isSaving={savingPowerDeviceId === device.id}
+                              onAssign={(gudeDeviceId, port) =>
+                                assignPowerOutlet(
+                                  device.id,
+                                  gudeDeviceId,
+                                  port,
+                                )}
+                            />
+                          ) : null
                         )}
                       </article>
                     )
@@ -1504,6 +1739,94 @@ export default function DeviceLauncher({
                     <small>
                       One row per line. Separate columns with | and
                       list items with semicolons.
+                    </small>
+                  </label>
+                </>
+              )}
+
+              {!deviceDraft.device.powerControl && (
+                <label className="launcher-checkbox-field">
+                  <input
+                    type="checkbox"
+                    checked={deviceDraft.hasPowerOutlet}
+                    onChange={event => {
+                      const enabled = event.target.checked
+                      setDeviceDraft(current => {
+                        if (!current) return current
+                        const firstGude = config.devices.find(item => item.powerControl)
+                        return {
+                          ...current,
+                          hasPowerOutlet: enabled,
+                          device: enabled && !current.device.powerOutlet && firstGude
+                            ? {
+                                ...current.device,
+                                powerOutlet: {
+                                  gudeDeviceId: firstGude.id,
+                                  port: 1,
+                                },
+                              }
+                            : current.device,
+                        }
+                      })
+                    }}
+                  />
+                  Add GUDE power action
+                </label>
+              )}
+
+              {deviceDraft.hasPowerOutlet && (
+                <>
+                  <label>
+                    GUDE power source
+                    <select
+                      value={deviceDraft.device.powerOutlet?.gudeDeviceId ?? ''}
+                      required
+                      onChange={event =>
+                        setDeviceDraft(current => current
+                          ? {
+                              ...current,
+                              device: {
+                                ...current.device,
+                                powerOutlet: {
+                                  gudeDeviceId: event.target.value,
+                                  port: current.device.powerOutlet?.port ?? 1,
+                                },
+                              },
+                            }
+                          : current)
+                      }
+                    >
+                      {config.devices.filter(item => item.powerControl).map(item => (
+                        <option key={item.id} value={item.id}>{item.title}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    GUDE port number
+                    <input
+                      type="number"
+                      min="1"
+                      max="64"
+                      required
+                      value={deviceDraft.device.powerOutlet?.port ?? 1}
+                      onChange={event =>
+                        setDeviceDraft(current => current
+                          ? {
+                              ...current,
+                              device: {
+                                ...current.device,
+                                powerOutlet: {
+                                  gudeDeviceId: current.device.powerOutlet?.gudeDeviceId ?? '',
+                                  port: Number(event.target.value),
+                                },
+                              },
+                            }
+                          : current)
+                      }
+                    />
+                    <small>
+                      Verify the physical relationship. The outlet name and state are read live from the GUDE.
                     </small>
                   </label>
                 </>

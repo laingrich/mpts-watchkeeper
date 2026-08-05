@@ -4,7 +4,8 @@
       "route": "/api/*",
       "allowedRoles": [
         "watchkeeper_admin",
-        "watchkeeper_engineer"
+        "watchkeeper_engineer",
+        "watchkeeper_operator"
       ]
     },
     {
@@ -41,7 +42,8 @@
       "route": "/*",
       "allowedRoles": [
         "watchkeeper_admin",
-        "watchkeeper_engineer"
+        "watchkeeper_engineer",
+        "watchkeeper_operator"
       ]
     }
   ],

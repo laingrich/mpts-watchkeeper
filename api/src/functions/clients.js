@@ -1,13 +1,9 @@
 const { app } = require('@azure/functions')
+const { getClientPrincipal } = require('../auth/clientPrincipal')
 const {
-  getClientPrincipal,
-  hasAnyRole
-} = require('../auth/clientPrincipal')
-
-const allowedRoles = [
-  'watchkeeper_admin',
-  'watchkeeper_engineer'
-]
+  filterAccessibleClients,
+  hasWatchkeeperAccess
+} = require('../auth/clientAccess')
 
 let clientCache = {
   expiresAt: 0,
@@ -29,9 +25,9 @@ app.http('clients', {
       })
     }
 
-    if (!hasAnyRole(principal, allowedRoles)) {
+    if (!hasWatchkeeperAccess(principal)) {
       return json(403, {
-        error: 'Administrator or engineer access is required'
+        error: 'Watchkeeper access is required'
       })
     }
 
@@ -40,12 +36,17 @@ app.http('clients', {
         request.query.get('refresh') === 'true'
 
       const result = await getClients(forceRefresh)
+      const clients = filterAccessibleClients(
+        principal,
+        result.clients,
+        process.env.WATCHKEEPER_OPERATOR_CLIENT_ACCESS
+      )
 
       return json(
         200,
         {
-          clients: result.clients,
-          count: result.clients.length,
+          clients,
+          count: clients.length,
           fetchedAt: result.fetchedAt,
           cached: result.cached,
           source: 'jetbuilt'

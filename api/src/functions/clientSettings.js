@@ -4,17 +4,17 @@ const {
   hasAnyRole
 } = require('../auth/clientPrincipal')
 const {
+  canAccessClient,
+  canEditEngineeringData,
+  hasWatchkeeperAccess
+} = require('../auth/clientAccess')
+const {
   readClientSettings,
   writeClientSettings
 } = require('../storage/clientSettingsStore')
 const {
   mergeClientSettings
 } = require('../settings/clientSettingsSchema')
-
-const allowedRoles = [
-  'watchkeeper_admin',
-  'watchkeeper_engineer'
-]
 
 const adminRoles = [
   'watchkeeper_admin'
@@ -34,10 +34,9 @@ app.http('clientSettings', {
       })
     }
 
-    if (!hasAnyRole(principal, allowedRoles)) {
+    if (!hasWatchkeeperAccess(principal)) {
       return json(403, {
-        error:
-          'Administrator or engineer access is required'
+        error: 'Watchkeeper access is required'
       })
     }
 
@@ -49,12 +48,22 @@ app.http('clientSettings', {
       })
     }
 
+    if (!canAccessClient(principal, clientId)) {
+      return json(403, { error: 'Access to this client is not permitted' })
+    }
+
     try {
       const current = await readClientSettings(clientId)
 
       if (request.method === 'GET') {
         return json(200, current, {
           'Cache-Control': 'no-store'
+        })
+      }
+
+      if (!canEditEngineeringData(principal)) {
+        return json(403, {
+          error: 'Administrator or engineer access is required to change site information'
         })
       }
 

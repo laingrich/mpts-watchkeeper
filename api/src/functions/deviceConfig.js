@@ -1,17 +1,14 @@
 const { app } = require('@azure/functions')
+const { getClientPrincipal } = require('../auth/clientPrincipal')
 const {
-  getClientPrincipal,
-  hasAnyRole
-} = require('../auth/clientPrincipal')
+  canAccessClient,
+  canEditEngineeringData,
+  hasWatchkeeperAccess
+} = require('../auth/clientAccess')
 const {
   readConfig,
   writeConfig
 } = require('../storage/deviceConfigStore')
-
-const allowedRoles = [
-  'watchkeeper_admin',
-  'watchkeeper_engineer'
-]
 
 app.http('deviceConfig', {
   methods: ['GET', 'PUT'],
@@ -27,10 +24,9 @@ app.http('deviceConfig', {
       })
     }
 
-    if (!hasAnyRole(principal, allowedRoles)) {
+    if (!hasWatchkeeperAccess(principal)) {
       return json(403, {
-        error:
-          'Administrator or engineer access is required'
+        error: 'Watchkeeper access is required'
       })
     }
 
@@ -40,6 +36,10 @@ app.http('deviceConfig', {
       return json(400, {
         error: 'Invalid Jetbuilt client ID'
       })
+    }
+
+    if (!canAccessClient(principal, clientId)) {
+      return json(403, { error: 'Access to this client is not permitted' })
     }
 
     try {
@@ -54,6 +54,12 @@ app.http('deviceConfig', {
               error:
                 'No device launcher is stored for this client'
             })
+      }
+
+      if (!canEditEngineeringData(principal)) {
+        return json(403, {
+          error: 'Administrator or engineer access is required to change the launcher'
+        })
       }
 
       const config = validateConfig(await request.json())
@@ -94,7 +100,9 @@ app.http('deviceConfig', {
         message.startsWith('Invalid') ||
         message.includes('required') ||
         message.includes('maximum') ||
-        message.includes('unknown group')
+        message.includes('unknown group') ||
+        message.includes('GUDE power') ||
+        message.includes('already assigned')
           ? 400
           : 500
 
@@ -200,8 +208,39 @@ function validateConfig(value) {
       )
     }
 
+    if (device.powerControl !== undefined) {
+      result.powerControl = validatePowerControl(
+        device.powerControl
+      )
+    }
+
+    if (device.powerOutlet !== undefined) {
+      result.powerOutlet = validatePowerOutlet(device.powerOutlet)
+    }
+
     return result
   })
+
+  const devicesById = new Map(devices.map(device => [device.id, device]))
+  const assignedPowerOutlets = new Map()
+  for (const device of devices) {
+    if (!device.powerOutlet) continue
+    const source = devicesById.get(device.powerOutlet.gudeDeviceId)
+    if (!source?.powerControl || source.powerControl.provider !== 'gude') {
+      throw new Error(
+        `Device references unknown GUDE power source: ${device.powerOutlet.gudeDeviceId}`
+      )
+    }
+
+    const outletKey = `${device.powerOutlet.gudeDeviceId}:${device.powerOutlet.port}`
+    const existingDevice = assignedPowerOutlets.get(outletKey)
+    if (existingDevice) {
+      throw new Error(
+        `GUDE power outlet is already assigned to device: ${existingDevice}`
+      )
+    }
+    assignedPowerOutlets.set(outletKey, device.id)
+  }
 
   const config = {
     version:
@@ -224,6 +263,35 @@ function validateConfig(value) {
   }
 
   return config
+}
+
+function validatePowerControl(value) {
+  if (!value || typeof value !== 'object' || value.provider !== 'gude') {
+    throw new Error('Invalid device power control')
+  }
+
+  return {
+    provider: 'gude',
+    model: requiredString(value.model, 'GUDE model', 200)
+  }
+}
+
+function validatePowerOutlet(value) {
+  if (!value || typeof value !== 'object') {
+    throw new Error('Invalid device power outlet')
+  }
+  const port = Number(value.port)
+  if (!Number.isInteger(port) || port < 1 || port > 64) {
+    throw new Error('Invalid GUDE power outlet port')
+  }
+  return {
+    gudeDeviceId: requiredString(
+      value.gudeDeviceId,
+      'GUDE power source device ID',
+      120
+    ),
+    port
+  }
 }
 
 function validateDetails(details) {

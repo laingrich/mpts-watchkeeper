@@ -6,7 +6,9 @@
     "dev:full": "concurrently --kill-others --names WEB,API,SWA \"npm run dev:web\" \"npm run dev:api\" \"npm run dev:swa\"",
     "dev:web": "vite --host 127.0.0.1",
     "dev:api": "cd api && func host start --port 7071",
-    "dev:swa": "wait-on http://127.0.0.1:5173 http-get://127.0.0.1:7071/api/health && swa start http://127.0.0.1:5173 --api-devserver-url http://127.0.0.1:7071 --swa-config-location public"
+    "dev:helper": "node helper/src/server.js",
+    "dev:swa": "wait-on http://127.0.0.1:5173 http-get://127.0.0.1:7071/api/health && swa start http://127.0.0.1:5173 --api-devserver-url http://127.0.0.1:7071 --swa-config-location public",
+    "test:helper": "node --test helper/test/*.test.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.1",

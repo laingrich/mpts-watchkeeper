@@ -1,8 +1,6 @@
 const { app } = require('@azure/functions')
-const {
-  getClientPrincipal,
-  hasAnyRole
-} = require('../auth/clientPrincipal')
+const { getClientPrincipal } = require('../auth/clientPrincipal')
+const { hasWatchkeeperAccess } = require('../auth/clientAccess')
 const {
   mergeUserPreferences
 } = require('../settings/userPreferencesSchema')
@@ -10,11 +8,6 @@ const {
   readUserPreferences,
   writeUserPreferences
 } = require('../storage/userPreferencesStore')
-
-const allowedRoles = [
-  'watchkeeper_admin',
-  'watchkeeper_engineer'
-]
 
 app.http('userPreferences', {
   methods: ['GET', 'PUT'],
@@ -30,10 +23,9 @@ app.http('userPreferences', {
       })
     }
 
-    if (!hasAnyRole(principal, allowedRoles)) {
+    if (!hasWatchkeeperAccess(principal)) {
       return json(403, {
-        error:
-          'Administrator or engineer access is required'
+        error: 'Watchkeeper access is required'
       })
     }
 
