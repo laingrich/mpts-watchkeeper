@@ -180,6 +180,7 @@
 .launcher-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  align-items: start;
   gap: 14px;
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -203,8 +204,8 @@
   opacity: 0.45;
 }
 
-.launcher-card.map-open {
-  grid-column: 1 / -1;
+.launcher-card.map-open,
+.launcher-card.power-open {
   min-height: 0;
   border-color: rgba(96, 165, 250, 0.35);
 }
@@ -435,6 +436,46 @@
   width: auto;
 }
 
+.launcher-card .gude-control {
+  padding-right: 14px;
+  padding-left: 14px;
+}
+
+.launcher-card .gude-control-summary,
+.launcher-card .gude-device-power,
+.launcher-card .gude-outlet-assignment-heading {
+  grid-template-columns: 1fr;
+}
+
+.launcher-card .gude-device-power,
+.launcher-card .gude-outlet-assignment {
+  padding-right: 14px;
+  padding-left: 14px;
+}
+
+.launcher-card .gude-port {
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.launcher-card .gude-port-actions,
+.launcher-card .gude-port small {
+  grid-column: 2 / -1;
+}
+
+.launcher-card .gude-port-actions {
+  justify-content: flex-start;
+}
+
+.launcher-card .gude-outlet-result {
+  grid-template-columns: 12px minmax(0, 1fr);
+}
+
+.launcher-card .gude-outlet-result button {
+  grid-column: 2;
+  justify-self: start;
+}
+
 @media (max-width: 850px) {
   .launcher-editor-bar,
   .launcher-toolbar {
@@ -445,7 +486,7 @@
 
   .launcher-actions {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .launcher-group-heading {

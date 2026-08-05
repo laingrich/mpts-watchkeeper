@@ -37,9 +37,13 @@
     },
     {
       "id": "dev-gude-av1",
-      "title": "Gude IPPDU AV#1",
+      "title": "GUDE IPPDU AV#1",
       "link": "http://192.168.2.50/",
       "group": "power",
+      "powerControl": {
+        "provider": "gude",
+        "model": "Expert Power Control 8041-1"
+      },
       "details": {
         "type": "outlet",
         "title": "Outlet map",
@@ -97,9 +101,13 @@
     },
     {
       "id": "dev-gude-av2",
-      "title": "Gude IPPDU AV#2",
+      "title": "GUDE IPPDU AV#2",
       "link": "http://192.168.2.51/",
       "group": "power",
+      "powerControl": {
+        "provider": "gude",
+        "model": "Expert Power Control 8041-1"
+      },
       "details": {
         "type": "outlet",
         "title": "Outlet map",
@@ -165,15 +173,23 @@
     },
     {
       "id": "dev-gude-panic",
-      "title": "Gude IPPDU Panic Room",
+      "title": "GUDE IPPDU Panic Room",
       "link": "http://192.168.2.52",
-      "group": "power"
+      "group": "power",
+      "powerControl": {
+        "provider": "gude",
+        "model": "Expert Power Control 8031-1"
+      }
     },
     {
       "id": "dev-gude-garage",
-      "title": "Gude IPPDU Garage",
+      "title": "GUDE IPPDU Garage",
       "link": "http://192.168.2.53/",
       "group": "power",
+      "powerControl": {
+        "provider": "gude",
+        "model": "Expert Power Control 8031-1"
+      },
       "details": {
         "type": "outlet",
         "title": "Outlet map",
@@ -195,9 +211,13 @@
     },
     {
       "id": "dev-gude-it",
-      "title": "Gude IPPDU IT Rack",
+      "title": "GUDE IPPDU IT Rack",
       "link": "http://192.168.2.54",
       "group": "power",
+      "powerControl": {
+        "provider": "gude",
+        "model": "Expert Power Control 8041-1"
+      },
       "details": {
         "type": "outlet",
         "title": "Outlet map",
@@ -264,6 +284,10 @@
       "title": "Rti AD1616#2",
       "link": "http://192.168.2.17/",
       "group": "audio-video-distribution",
+      "powerOutlet": {
+        "gudeDeviceId": "dev-gude-av1",
+        "port": 5
+      },
       "details": {
         "type": "ad16",
         "title": "AD16 pre-output / zone map",
@@ -356,6 +380,10 @@
       "title": "Rti AD1616#3",
       "link": "http://192.168.2.18/",
       "group": "audio-video-distribution",
+      "powerOutlet": {
+        "gudeDeviceId": "dev-gude-av1",
+        "port": 4
+      },
       "details": {
         "type": "ad16",
         "title": "AD16 pre-output / zone map",
@@ -613,7 +641,11 @@
       "id": "dev-concert-avr",
       "title": "Concert AVR",
       "link": "http://192.168.2.26/",
-      "group": "cinema"
+      "group": "cinema",
+      "powerOutlet": {
+        "gudeDeviceId": "dev-gude-av2",
+        "port": 10
+      }
     },
     {
       "id": "dev-kscape",

@@ -9,6 +9,8 @@ dist/
 .env
 .env.local
 api/local.settings.json
+helper/local.config.json
+helper/*.audit.jsonl
 
 # Local tooling and caches
 .swa/

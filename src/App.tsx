@@ -256,6 +256,9 @@ export default function App() {
 
   const isAdmin =
     currentUser?.userRoles.includes('watchkeeper_admin') ?? false
+  const isEngineer =
+    currentUser?.userRoles.includes('watchkeeper_engineer') ?? false
+  const canEditEngineeringData = isAdmin || isEngineer
   const visibleTabs = isAdmin
     ? WATCHKEEPER_TABS
     : WATCHKEEPER_TABS.filter(item => item !== 'Site configuration')
@@ -442,6 +445,8 @@ export default function App() {
             siteId={client.id}
             siteName={client.name}
             remoteSupport={clientSettings.remoteSupport}
+            canEditLauncher={canEditEngineeringData}
+            canEditPowerPortNames={canEditEngineeringData}
             onConfigureRemoteSupport={
               isAdmin
                 ? () => changeTab('Site configuration')
@@ -454,6 +459,7 @@ export default function App() {
           <SharePointClientLink
             clientId={client.id}
             clientName={client.name}
+            canEdit={canEditEngineeringData}
             onSettingsChanged={setClientSettings}
           />
         )}

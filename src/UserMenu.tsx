@@ -24,6 +24,10 @@ function getRoleLabel(user: ClientPrincipal) {
     return 'Engineer'
   }
 
+  if (user.userRoles.includes('watchkeeper_operator')) {
+    return 'Operator'
+  }
+
   return 'Signed in'
 }
 

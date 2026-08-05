@@ -1,0 +1,22 @@
+{
+  "port": 47832,
+  "allowedOrigins": [
+    "https://app.mptech.solutions",
+    "http://127.0.0.1:5173"
+  ],
+  "authorisationPublicKey": "replace-with-base64-spki-public-key",
+  "auditLogPath": "./watchkeeper-helper.audit.jsonl",
+  "devices": [
+    {
+      "clientId": "replace-with-jetbuilt-client-id",
+      "deviceId": "dev-gude-example",
+      "baseUrl": "http://192.0.2.10",
+      "model": "Expert Power Control 8041-1",
+      "username": "replace-locally",
+      "password": "replace-locally",
+      "snmpWriteCommunity": "replace-locally",
+      "portCount": 12,
+      "protectedPorts": []
+    }
+  ]
+}

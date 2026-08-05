@@ -14,6 +14,7 @@ import './SharePointClientLink.css'
 type SharePointClientLinkProps = {
   clientId: string
   clientName: string
+  canEdit: boolean
   onSettingsChanged?: (settings: ClientSettings) => void
 }
 
@@ -22,6 +23,7 @@ type DocumentSource = 'sharepoint' | 'artura'
 export default function SharePointClientLink({
   clientId,
   clientName,
+  canEdit,
   onSettingsChanged,
 }: SharePointClientLinkProps) {
   const [settings, setSettings] =
@@ -189,6 +191,7 @@ export default function SharePointClientLink({
           editingSource={editingSource}
           draftUrl={draftUrl}
           isSaving={isSaving}
+          canEdit={canEdit}
           onEdit={beginEditing}
           onDraftUrlChange={setDraftUrl}
           onCancel={() => {
@@ -210,6 +213,7 @@ export default function SharePointClientLink({
           editingSource={editingSource}
           draftUrl={draftUrl}
           isSaving={isSaving}
+          canEdit={canEdit}
           onEdit={beginEditing}
           onDraftUrlChange={setDraftUrl}
           onCancel={() => {
@@ -241,6 +245,7 @@ type DocumentSourceCardProps = {
   editingSource: DocumentSource | null
   draftUrl: string
   isSaving: boolean
+  canEdit: boolean
   onEdit: (source: DocumentSource) => void
   onDraftUrlChange: (url: string) => void
   onCancel: () => void
@@ -259,6 +264,7 @@ function DocumentSourceCard({
   editingSource,
   draftUrl,
   isSaving,
+  canEdit,
   onEdit,
   onDraftUrlChange,
   onCancel,
@@ -287,13 +293,15 @@ function DocumentSourceCard({
               {openLabel}
             </a>
           )}
-          <button
-            className="sharepoint-edit-button"
-            type="button"
-            onClick={() => onEdit(source)}
-          >
-            {url ? 'Edit link' : 'Add link'}
-          </button>
+          {canEdit && (
+            <button
+              className="sharepoint-edit-button"
+              type="button"
+              onClick={() => onEdit(source)}
+            >
+              {url ? 'Edit link' : 'Add link'}
+            </button>
+          )}
         </div>
       )}
 
