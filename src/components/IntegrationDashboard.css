@@ -204,6 +204,138 @@
   text-align: right;
 }
 
+.ups-monitoring-card {
+  overflow: hidden;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 40%),
+    rgba(10, 18, 34, 0.66);
+}
+
+.ups-monitoring-card.attention {
+  border-color: rgba(239, 68, 68, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.08), transparent 40%),
+    rgba(10, 18, 34, 0.66);
+}
+
+.ups-monitoring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.ups-device-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ups-device-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  background: #0f192b;
+}
+
+.ups-device-card > header,
+.ups-device-card > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ups-device-card > header {
+  align-items: flex-start;
+}
+
+.ups-device-card > header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.ups-device-card h5 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.ups-device-card small,
+.ups-device-card > footer,
+.ups-monitoring-footer {
+  color: #64748b;
+  font-size: 0.64rem;
+}
+
+.ups-device-card small {
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.ups-device-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.ups-device-metrics div {
+  display: grid;
+  gap: 5px;
+}
+
+.ups-device-metrics dt {
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.ups-device-metrics dd {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.ups-device-card.attention .ups-device-metrics dd {
+  color: #fecaca;
+}
+
+.ups-transfer-summary {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 2px solid rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.05);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.ups-device-card.attention .ups-transfer-summary {
+  border-left-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.ups-device-card > footer {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ups-monitoring-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  line-height: 1.45;
+}
+
 .integration-system-row {
   display: grid;
   grid-template-columns: minmax(155px, 0.75fr) minmax(280px, 2fr) auto;
@@ -339,6 +471,10 @@
   .domotz-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .ups-device-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 800px) {
@@ -352,7 +488,8 @@
   }
 
   .domotz-monitoring-header,
-  .domotz-monitoring-context {
+  .domotz-monitoring-context,
+  .ups-monitoring-footer {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -380,6 +517,15 @@
 
   .domotz-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ups-monitoring-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ups-device-grid {
+    grid-template-columns: 1fr;
   }
 
   .domotz-metric {

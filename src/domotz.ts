@@ -25,6 +25,49 @@ export type DomotzStatus = {
   cached?: boolean
 }
 
+export type DomotzUpsTransfer = {
+  startedAt: string | null
+  endedAt: string | null
+  durationSeconds: number | null
+}
+
+export type DomotzUpsDevice = {
+  id: string
+  name: string
+  vendor: string
+  model: string
+  location: string
+  zone: string
+  status: string
+  importance: string
+  outputSource: string
+  batteryStatus: string
+  batteryChargePercent: number | null
+  estimatedMinutesRemaining: number | null
+  batteryVoltage: number | null
+  alarmsPresent: number | null
+  observedAt: string | null
+  historyFrom: string
+  historyTo: string
+  batteryTransfers: DomotzUpsTransfer[]
+}
+
+export type DomotzUpsStatus = {
+  state:
+    | 'not-linked'
+    | 'connected'
+    | 'attention'
+    | 'no-devices'
+    | 'link-invalid'
+  historyDays?: number
+  historyFrom?: string
+  historyTo?: string
+  devices: DomotzUpsDevice[]
+  fetchedAt: string | null
+  cached?: boolean
+  dataSource?: 'domotz'
+}
+
 type DomotzAgentsResponse = {
   agents?: unknown
 }
@@ -69,6 +112,26 @@ export async function loadDomotzStatus(
   }
 
   return (await response.json()) as DomotzStatus
+}
+
+export async function loadDomotzUpsStatus(
+  clientId: string,
+  forceRefresh = false,
+) {
+  const suffix = forceRefresh ? '?refresh=true' : ''
+  const response = await fetch(
+    `/api/domotz/ups/${encodeURIComponent(clientId)}${suffix}`,
+    {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response))
+  }
+
+  return (await response.json()) as DomotzUpsStatus
 }
 
 function isDomotzAgent(value: unknown): value is DomotzAgent {

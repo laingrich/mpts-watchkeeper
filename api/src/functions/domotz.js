@@ -10,6 +10,7 @@ const {
   DomotzApiError,
   getAgent,
   getDeviceStatusCounts,
+  getUpsMonitoring,
   listAgents
 } = require('../integrations/domotzClient')
 
@@ -24,6 +25,8 @@ const maximumCacheTtlMs = 300000
 
 let agentsCache = null
 const statusCache = new Map()
+const upsCache = new Map()
+const upsRequests = new Map()
 
 app.http('domotzAgents', {
   methods: ['GET'],
@@ -139,6 +142,83 @@ app.http('domotzStatus', {
   }
 })
 
+app.http('domotzUpsStatus', {
+  methods: ['GET'],
+  authLevel: 'anonymous',
+  route: 'domotz/ups/{clientId}',
+
+  handler: async request => {
+    const principal = getClientPrincipal(request)
+
+    if (!principal) {
+      return json(401, { error: 'Authentication required' })
+    }
+
+    if (!hasAnyRole(principal, allowedRoles)) {
+      return json(403, {
+        error: 'Administrator or engineer access is required'
+      })
+    }
+
+    const clientId = String(request.params.clientId || '').trim()
+
+    if (!clientId || clientId.length > 200) {
+      return json(400, { error: 'Invalid Jetbuilt client ID' })
+    }
+
+    try {
+      const clientSettings = await readClientSettings(clientId)
+      const agentId =
+        clientSettings.settings.integrations?.domotz?.agentId || ''
+
+      if (!agentId) {
+        return json(
+          200,
+          {
+            state: 'not-linked',
+            devices: [],
+            fetchedAt: null
+          },
+          { 'Cache-Control': 'no-store' }
+        )
+      }
+
+      const forceRefresh = request.query.get('refresh') === 'true'
+      const result = await cachedUps(agentId, forceRefresh)
+
+      return json(
+        200,
+        {
+          state: upsState(result.value.devices),
+          ...result.value,
+          fetchedAt: result.fetchedAt,
+          cached: result.cached,
+          dataSource: 'domotz'
+        },
+        { 'Cache-Control': 'no-store' }
+      )
+    } catch (error) {
+      if (
+        error instanceof DomotzApiError &&
+        error.code === 'DOMOTZ_AGENT_NOT_FOUND'
+      ) {
+        return json(
+          200,
+          {
+            state: 'link-invalid',
+            devices: [],
+            fetchedAt: new Date().toISOString(),
+            dataSource: 'domotz'
+          },
+          { 'Cache-Control': 'no-store' }
+        )
+      }
+
+      return domotzError('UPS summary', error)
+    }
+  }
+})
+
 async function cachedAgents(forceRefresh) {
   const now = Date.now()
 
@@ -192,6 +272,62 @@ async function cachedStatus(agentId, forceRefresh) {
   })
 
   return { value, fetchedAt, cached: false }
+}
+
+async function cachedUps(agentId, forceRefresh) {
+  const now = Date.now()
+  const cached = upsCache.get(agentId)
+
+  if (!forceRefresh && cached?.expiresAt > now) {
+    return {
+      value: cached.value,
+      fetchedAt: cached.fetchedAt,
+      cached: true
+    }
+  }
+
+  if (!forceRefresh && upsRequests.has(agentId)) {
+    const result = await upsRequests.get(agentId)
+    return { ...result, cached: true }
+  }
+
+  const pending = (async () => {
+    const value = await getUpsMonitoring(agentId)
+    const fetchedAt = new Date().toISOString()
+
+    upsCache.set(agentId, {
+      value,
+      fetchedAt,
+      expiresAt: Date.now() + cacheTtlMs()
+    })
+
+    return { value, fetchedAt, cached: false }
+  })()
+
+  upsRequests.set(agentId, pending)
+
+  try {
+    return await pending
+  } finally {
+    if (upsRequests.get(agentId) === pending) {
+      upsRequests.delete(agentId)
+    }
+  }
+}
+
+function upsState(devices) {
+  if (!Array.isArray(devices) || devices.length === 0) {
+    return 'no-devices'
+  }
+
+  const attention = devices.some(device =>
+    device.status !== 'ONLINE' ||
+    device.outputSource !== 'normal' ||
+    (device.alarmsPresent !== null && device.alarmsPresent > 0) ||
+    !['batterynormal', 'unknown'].includes(device.batteryStatus)
+  )
+
+  return attention ? 'attention' : 'connected'
 }
 
 function cacheTtlMs() {
