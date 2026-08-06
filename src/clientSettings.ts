@@ -30,7 +30,7 @@ export type RemoteSupportMethod =
   | 'other'
 
 export type ClientSettings = {
-  schemaVersion: 3
+  schemaVersion: 4
   sharePointUrl: string
   arturaUrl: string
   site: {
@@ -50,6 +50,11 @@ export type ClientSettings = {
     internetCheckEnabled: boolean
     coreDeviceChecksEnabled: boolean
     probeTarget: string
+  }
+  integrations: {
+    domotz: {
+      agentId: string
+    }
   }
   discovery: {
     domotzEnabled: boolean
@@ -90,7 +95,7 @@ type LegacyDiscovery = Partial<ClientSettings['discovery']> & {
 
 export function createDefaultClientSettings(): ClientSettings {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     sharePointUrl: '',
     arturaUrl: 'https://app.artura.io',
     site: {
@@ -110,6 +115,11 @@ export function createDefaultClientSettings(): ClientSettings {
       internetCheckEnabled: true,
       coreDeviceChecksEnabled: true,
       probeTarget: '',
+    },
+    integrations: {
+      domotz: {
+        agentId: '',
+      },
     },
     discovery: {
       domotzEnabled: false,
@@ -151,7 +161,7 @@ export function normaliseClientSettings(
   return {
     ...defaults,
     ...input,
-    schemaVersion: 3,
+    schemaVersion: 4,
     sharePointUrl:
       typeof input.sharePointUrl === 'string'
         ? input.sharePointUrl
@@ -172,6 +182,16 @@ export function normaliseClientSettings(
       ...defaults.monitoring,
       ...monitoringInput,
       source: normaliseMonitoringSource(monitoringInput),
+    },
+    integrations: {
+      domotz: {
+        ...defaults.integrations.domotz,
+        ...(input.integrations?.domotz || {}),
+        agentId:
+          typeof input.integrations?.domotz?.agentId === 'string'
+            ? input.integrations.domotz.agentId
+            : defaults.integrations.domotz.agentId,
+      },
     },
     discovery: {
       ...defaults.discovery,

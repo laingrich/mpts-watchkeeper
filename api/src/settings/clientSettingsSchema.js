@@ -35,7 +35,7 @@ const remoteSupportMethods = new Set([
 
 function defaultClientSettings() {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     sharePointUrl: '',
     arturaUrl: 'https://app.artura.io',
     site: {
@@ -55,6 +55,11 @@ function defaultClientSettings() {
       internetCheckEnabled: true,
       coreDeviceChecksEnabled: true,
       probeTarget: ''
+    },
+    integrations: {
+      domotz: {
+        agentId: ''
+      }
     },
     discovery: {
       domotzEnabled: false,
@@ -90,7 +95,7 @@ function normaliseClientSettings(value) {
   return validateClientSettings({
     ...defaults,
     ...input,
-    schemaVersion: 3,
+    schemaVersion: 4,
     site: {
       ...defaults.site,
       ...(isObject(input.site) ? input.site : {})
@@ -103,6 +108,18 @@ function normaliseClientSettings(value) {
       ...defaults.monitoring,
       ...monitoringInput,
       source: normaliseMonitoringSource(monitoringInput)
+    },
+    integrations: {
+      ...defaults.integrations,
+      ...(isObject(input.integrations)
+        ? input.integrations
+        : {}),
+      domotz: {
+        ...defaults.integrations.domotz,
+        ...(isObject(input.integrations?.domotz)
+          ? input.integrations.domotz
+          : {})
+      }
     },
     discovery: {
       ...defaults.discovery,
@@ -148,7 +165,7 @@ function mergeClientSettings(current, patch) {
   return normaliseClientSettings({
     ...base,
     ...patch,
-    schemaVersion: 3,
+    schemaVersion: 4,
     site: {
       ...base.site,
       ...(isObject(patch.site) ? patch.site : {})
@@ -162,6 +179,18 @@ function mergeClientSettings(current, patch) {
       ...(isObject(patch.monitoring)
         ? patch.monitoring
         : {})
+    },
+    integrations: {
+      ...base.integrations,
+      ...(isObject(patch.integrations)
+        ? patch.integrations
+        : {}),
+      domotz: {
+        ...base.integrations.domotz,
+        ...(isObject(patch.integrations?.domotz)
+          ? patch.integrations.domotz
+          : {})
+      }
     },
     discovery: {
       ...base.discovery,
@@ -233,7 +262,7 @@ function validateClientSettings(value) {
   }
 
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     sharePointUrl,
     arturaUrl,
     site: {
@@ -293,6 +322,13 @@ function validateClientSettings(value) {
         1000,
         'Monitoring probe target'
       )
+    },
+    integrations: {
+      domotz: {
+        agentId: domotzAgentId(
+          value.integrations?.domotz?.agentId
+        )
+      }
     },
     discovery: {
       domotzEnabled: booleanValue(
@@ -404,6 +440,20 @@ function enumValue(value, allowed, fieldName) {
 
 function booleanValue(value) {
   return value === true
+}
+
+function domotzAgentId(value) {
+  const result = cleanString(
+    value,
+    20,
+    'Domotz Collector ID'
+  )
+
+  if (result && !/^\d+$/.test(result)) {
+    throw new Error('Invalid Domotz Collector ID')
+  }
+
+  return result
 }
 
 function cleanString(value, maxLength, fieldName) {

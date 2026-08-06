@@ -22,6 +22,7 @@ type ClientPickerProps = {
   recentClientIds: string[]
   showAllClients: boolean
   onChange: (clientId: string) => void
+  onRemoveRecent: (clientId: string) => void
   onShowAllClientsChange: (showAllClients: boolean) => void
 }
 
@@ -31,6 +32,7 @@ export default function ClientPicker({
   recentClientIds,
   showAllClients,
   onChange,
+  onRemoveRecent,
   onShowAllClientsChange,
 }: ClientPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -134,6 +136,15 @@ export default function ClientPicker({
       block: 'nearest',
     })
   }, [activeIndex])
+
+  useEffect(() => {
+    setActiveIndex(current =>
+      Math.max(
+        0,
+        Math.min(current, keyboardClients.length - 1),
+      ),
+    )
+  }, [keyboardClients.length])
 
   function openPicker() {
     setIsOpen(true)
@@ -312,6 +323,7 @@ export default function ClientPicker({
                   }
                 }}
                 onSelect={selectClient}
+                onRemove={onRemoveRecent}
               />
             )}
 
@@ -372,6 +384,7 @@ type ClientSectionProps = {
   activeOptionRef: RefObject<HTMLButtonElement>
   onHighlight: (clientId: string) => void
   onSelect: (clientId: string) => void
+  onRemove?: (clientId: string) => void
 }
 
 function ClientSection({
@@ -382,6 +395,7 @@ function ClientSection({
   activeOptionRef,
   onHighlight,
   onSelect,
+  onRemove,
 }: ClientSectionProps) {
   if (clients.length === 0) {
     return null
@@ -396,40 +410,57 @@ function ClientSection({
         const active = client.id === activeClientId
 
         return (
-          <button
-            id={optionId(client.id)}
-            ref={active ? activeOptionRef : undefined}
-            type="button"
-            role="option"
-            aria-selected={selected}
-            className={[
-              'client-picker-option',
-              selected ? 'selected' : '',
-              active ? 'active' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            key={client.id}
-            onMouseEnter={() => onHighlight(client.id)}
-            onClick={() => onSelect(client.id)}
-          >
-            <span>
-              <strong>{client.name}</strong>
+          <div className="client-picker-option-row" key={client.id}>
+            <button
+              id={optionId(client.id)}
+              ref={active ? activeOptionRef : undefined}
+              type="button"
+              role="option"
+              aria-selected={selected}
+              className={[
+                'client-picker-option',
+                selected ? 'selected' : '',
+                active ? 'active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onMouseEnter={() => onHighlight(client.id)}
+              onClick={() => onSelect(client.id)}
+            >
+              <span>
+                <strong>{client.name}</strong>
 
-              {client.active === false && (
-                <small>Inactive</small>
-              )}
-            </span>
-
-            {selected && (
-              <span
-                className="client-picker-selected"
-                aria-hidden="true"
-              >
-                ✓
+                {client.active === false && (
+                  <small>Inactive</small>
+                )}
               </span>
+
+              {selected && (
+                <span
+                  className="client-picker-selected"
+                  aria-hidden="true"
+                >
+                  ✓
+                </span>
+              )}
+            </button>
+
+            {onRemove && (
+              <button
+                className="client-picker-remove-recent"
+                type="button"
+                aria-label={`Remove ${client.name} from recently used`}
+                title="Remove from recently used"
+                onKeyDown={event => event.stopPropagation()}
+                onClick={event => {
+                  event.stopPropagation()
+                  onRemove(client.id)
+                }}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
             )}
-          </button>
+          </div>
         )
       })}
     </section>

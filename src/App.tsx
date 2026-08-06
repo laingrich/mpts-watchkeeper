@@ -148,12 +148,7 @@ export default function App() {
         const validClientIds = new Set(
           data.clients.map(client => client.id),
         )
-        const recentClientIds = [
-          selectedClient.id,
-          ...loadedPreferences.recentClientIds.filter(
-            clientId => clientId !== selectedClient.id,
-          ),
-        ]
+        const recentClientIds = loadedPreferences.recentClientIds
           .filter(clientId => validClientIds.has(clientId))
           .slice(0, 5)
 
@@ -297,6 +292,15 @@ export default function App() {
     }))
   }
 
+  function removeRecentClient(clientId: string) {
+    setUserPreferences(current => ({
+      ...current,
+      recentClientIds: current.recentClientIds.filter(
+        id => id !== clientId,
+      ),
+    }))
+  }
+
   if (isLoading) {
     return (
       <PageShell onUserLoaded={setCurrentUser}>
@@ -359,6 +363,7 @@ export default function App() {
             recentClientIds={userPreferences.recentClientIds}
             showAllClients={userPreferences.showAllClients}
             onChange={changeClient}
+            onRemoveRecent={removeRecentClient}
             onShowAllClientsChange={changeClientScope}
           />
           <UserMenu onUserLoaded={setCurrentUser} />
@@ -431,11 +436,16 @@ export default function App() {
             </section>
 
             <SystemHealthDashboard
+              clientId={client.id}
               clientName={client.name}
-              configuredDeviceCount={launcherDeviceCount}
-              onOpenDevices={() => changeTab('Devices')}
               monitoring={clientSettings.monitoring}
+              integrations={clientSettings.integrations}
               discovery={clientSettings.discovery}
+              onConfigureMonitoring={
+                isAdmin
+                  ? () => changeTab('Site configuration')
+                  : undefined
+              }
             />
           </div>
         )}

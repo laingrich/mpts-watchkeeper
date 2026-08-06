@@ -120,6 +120,25 @@ devices only from a computer that is running the helper and can reach the site
 directly or through its approved VPN/Teleport connection; it is not a cloud
 relay for mobile operation.
 
+### Domotz read-only integration
+
+Watchkeeper can associate a Jetbuilt client with a Domotz Collector and show a
+cached, read-only Collector and Important Devices availability summary. Other
+visible devices are reported separately as discovery context. Detailed
+monitoring, alerts, history and diagnosis remain in Domotz.
+
+Create a Public API key in the Domotz Portal, then configure these server-side
+settings locally and in Azure Static Web Apps:
+
+- `DOMOTZ_API_BASE_URL`: the API Key Endpoint shown by Domotz, including
+  `/public-api/v1`
+- `DOMOTZ_API_KEY`: the corresponding Domotz Public API key
+- `DOMOTZ_CACHE_TTL_MS`: optional cache duration; defaults to 60 seconds and is
+  capped at 5 minutes
+
+Never place the API key in frontend code or a `VITE_` setting. Restart the full
+development environment after changing `api/local.settings.json`.
+
 ## Build
 
    npm run build

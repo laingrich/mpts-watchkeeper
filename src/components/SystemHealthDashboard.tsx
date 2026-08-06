@@ -2,25 +2,28 @@ import type { ClientSettings } from '../clientSettings'
 import IntegrationDashboard from './IntegrationDashboard'
 
 type SystemHealthDashboardProps = {
+  clientId: string
   clientName: string
-  configuredDeviceCount: number
-  onOpenDevices: () => void
   monitoring: ClientSettings['monitoring']
+  integrations: ClientSettings['integrations']
   discovery?: ClientSettings['discovery']
+  onConfigureMonitoring?: () => void
 }
 
 export default function SystemHealthDashboard({
+  clientId,
   clientName,
-  configuredDeviceCount,
-  onOpenDevices,
   monitoring,
+  integrations,
   discovery,
+  onConfigureMonitoring,
 }: SystemHealthDashboardProps) {
   return (
     <IntegrationDashboard
+      clientId={clientId}
       clientName={clientName}
-      configuredDeviceCount={configuredDeviceCount}
       monitoring={monitoring}
+      integrations={integrations}
       discovery={
         discovery ?? {
           domotzEnabled: false,
@@ -29,7 +32,7 @@ export default function SystemHealthDashboard({
           subnet: '',
         }
       }
-      onOpenDevices={onOpenDevices}
+      onConfigureMonitoring={onConfigureMonitoring}
     />
   )
 }
