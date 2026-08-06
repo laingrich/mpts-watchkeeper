@@ -1,7 +1,17 @@
 const DOMOTZ_REQUEST_TIMEOUT_MS = 10000
 const DOMOTZ_MAX_AGENT_PAGES = 10
 const DOMOTZ_AGENT_PAGE_SIZE = 100
+const DOMOTZ_DEVICE_VARIABLE_PAGE_SIZE = 1000
+const DEFAULT_UPS_HISTORY_DAYS = 30
 const POWER_ACTIONS = new Set(['on', 'off', 'cycle'])
+const UPS_VARIABLE_NAMES = {
+  alarms: 'upsAlarmsPresent',
+  batteryStatus: 'upsBatteryStatus',
+  batteryVoltage: 'upsBatteryVoltage',
+  estimatedMinutes: 'upsEstimatedMinutesRemaining',
+  estimatedCharge: 'upsEstimatedChargeRemaining',
+  outputSource: 'upsOutputSource'
+}
 
 class DomotzApiError extends Error {
   constructor(message, code, statusCode = 502) {
@@ -118,6 +128,86 @@ async function getDeviceStatusCounts(agentId) {
   }
 
   return counts
+}
+
+async function getUpsMonitoring(agentId, options = {}) {
+  const id = validateAgentId(agentId)
+  const historyDays = normaliseHistoryDays(options.historyDays)
+  const now = normaliseDate(options.now) || new Date()
+  const historyFrom = new Date(
+    now.getTime() - historyDays * 24 * 60 * 60 * 1000
+  )
+  const devices = await domotzRequest(
+    `agent/${id}/device?show_hidden=false`,
+    options
+  )
+
+  if (!Array.isArray(devices)) {
+    throw new DomotzApiError(
+      'Domotz returned an invalid device list',
+      'DOMOTZ_INVALID_RESPONSE'
+    )
+  }
+
+  const eatonDevices = devices.filter(device =>
+    device &&
+    typeof device === 'object' &&
+    /\beaton\b/i.test(String(device.vendor || ''))
+  )
+
+  const monitoredDevices = []
+
+  for (const device of eatonDevices) {
+    const deviceId = numericId(device.id)
+    if (!deviceId) continue
+
+    const variables = await domotzRequest(
+      `agent/${id}/device/${deviceId}/variable?page_size=${DOMOTZ_DEVICE_VARIABLE_PAGE_SIZE}&page_number=0`,
+      { ...options, responseErrorFactory: upsResponseError }
+    )
+
+    if (!Array.isArray(variables)) {
+      throw new DomotzApiError(
+        'Domotz returned an invalid device variable list',
+        'DOMOTZ_INVALID_RESPONSE'
+      )
+    }
+
+    const upsVariables = indexUpsVariables(variables)
+    if (!upsVariables.outputSource) continue
+
+    const history = await domotzRequest(
+      `agent/${id}/device/${deviceId}/variable/${requiredNumericId(upsVariables.outputSource.id, 'variable')}/history?from=${encodeURIComponent(domotzDateTime(historyFrom))}&to=${encodeURIComponent(domotzDateTime(now))}`,
+      { ...options, responseErrorFactory: upsResponseError }
+    )
+
+    if (!Array.isArray(history)) {
+      throw new DomotzApiError(
+        'Domotz returned invalid UPS history',
+        'DOMOTZ_INVALID_RESPONSE'
+      )
+    }
+
+    monitoredDevices.push(
+      normaliseUpsDevice(device, upsVariables, history, {
+        historyFrom,
+        historyTo: now
+      })
+    )
+  }
+
+  return {
+    historyDays,
+    historyFrom: historyFrom.toISOString(),
+    historyTo: now.toISOString(),
+    devices: monitoredDevices.sort((left, right) =>
+      `${left.zone} ${left.location} ${left.name}`.localeCompare(
+        `${right.zone} ${right.location} ${right.name}`,
+        'en-GB',
+        { sensitivity: 'base' }
+      )
+    )
+  }
 }
 
 async function getPowerOutlets(agentId, deviceId, options = {}) {
@@ -319,6 +409,18 @@ function powerResponseError(status) {
   return responseError(status)
 }
 
+function upsResponseError(status) {
+  if (status === 404) {
+    return new DomotzApiError(
+      'The UPS monitoring data was not found in Domotz',
+      'DOMOTZ_UPS_DATA_NOT_FOUND',
+      404
+    )
+  }
+
+  return responseError(status)
+}
+
 function normaliseAgentSummary(value) {
   if (!value || typeof value !== 'object') {
     return null
@@ -367,6 +469,139 @@ function normalisePowerOutlet(value) {
     state: power === 'ON' ? 'on' : power === 'OFF' ? 'off' : 'unknown',
     canWrite: value.can_write === true
   }
+}
+
+function indexUpsVariables(variables) {
+  const result = {}
+
+  for (const variable of variables) {
+    if (!variable || typeof variable !== 'object') continue
+    const path = cleanText(variable.path, 500)
+    if (!path.includes('/ups-basic-info/')) continue
+
+    for (const [name, suffix] of Object.entries(UPS_VARIABLE_NAMES)) {
+      if (path.endsWith(`/${suffix}`)) result[name] = variable
+    }
+  }
+
+  return result
+}
+
+function normaliseUpsDevice(device, variables, history, window) {
+  const outputSource = variableText(variables.outputSource).toLowerCase()
+  const historySamples = history
+    .map(sample => ({
+      timestamp: dateTime(sample?.timestamp),
+      value: cleanText(sample?.value, 100).toLowerCase()
+    }))
+    .filter(sample => sample.timestamp && sample.value)
+  const transfers = batteryTransferEvents(historySamples, outputSource)
+  const relevantVariables = Object.values(variables).filter(Boolean)
+  const observedAt = relevantVariables
+    .map(variable => dateTime(variable.value_update_time))
+    .filter(Boolean)
+    .sort()
+    .at(-1) || null
+
+  return {
+    id: numericId(device.id),
+    name: cleanText(device.display_name, 250) || 'Eaton UPS',
+    vendor: cleanText(device.vendor, 250) || 'Eaton',
+    model:
+      cleanText(device.model, 250) ||
+      cleanText(device.user_data?.model, 250),
+    location: cleanText(device.details?.room, 200),
+    zone: cleanText(device.details?.zone, 200),
+    status: statusValue(device.status),
+    importance: statusValue(device.importance),
+    outputSource: outputSource || 'unknown',
+    batteryStatus:
+      variableText(variables.batteryStatus).toLowerCase() || 'unknown',
+    batteryChargePercent: variableNumber(variables.estimatedCharge),
+    estimatedMinutesRemaining: variableNumber(variables.estimatedMinutes),
+    batteryVoltage: variableNumber(variables.batteryVoltage),
+    alarmsPresent: variableNumber(variables.alarms),
+    observedAt,
+    historyFrom: window.historyFrom.toISOString(),
+    historyTo: window.historyTo.toISOString(),
+    batteryTransfers: transfers
+  }
+}
+
+function batteryTransferEvents(samples, currentOutputSource) {
+  const ordered = samples
+    .map(sample => ({
+      timestamp: dateTime(sample?.timestamp),
+      value: cleanText(sample?.value, 100).toLowerCase()
+    }))
+    .filter(sample => sample.timestamp && sample.value)
+    .sort((left, right) => left.timestamp.localeCompare(right.timestamp))
+  const events = []
+  let startedAt = null
+
+  for (const sample of ordered) {
+    if (sample.value === 'battery') {
+      if (!startedAt) startedAt = sample.timestamp
+      continue
+    }
+
+    if (!startedAt) continue
+    events.push(transferEvent(startedAt, sample.timestamp))
+    startedAt = null
+  }
+
+  if (startedAt || currentOutputSource === 'battery') {
+    const currentStart = startedAt || ordered
+      .filter(sample => sample.value === 'battery')
+      .at(-1)?.timestamp || null
+    events.push(transferEvent(currentStart, null))
+  }
+
+  return events.reverse()
+}
+
+function transferEvent(startedAt, endedAt) {
+  const durationSeconds = startedAt && endedAt
+    ? Math.max(
+      0,
+      Math.round(
+        (new Date(endedAt).getTime() - new Date(startedAt).getTime()) /
+        1000
+      )
+    )
+    : null
+
+  return { startedAt, endedAt, durationSeconds }
+}
+
+function variableText(variable) {
+  return cleanText(variable?.value, 100)
+}
+
+function variableNumber(variable) {
+  if (variable?.value === undefined || variable?.value === null) {
+    return null
+  }
+
+  const value = Number(variable.value)
+  return Number.isFinite(value) ? value : null
+}
+
+function normaliseHistoryDays(value) {
+  const days = Number(value)
+  if (!Number.isFinite(days)) return DEFAULT_UPS_HISTORY_DAYS
+  return Math.min(Math.max(Math.trunc(days), 1), 31)
+}
+
+function normaliseDate(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value
+  if (typeof value !== 'string') return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function domotzDateTime(value) {
+  return value.toISOString().slice(0, 19)
 }
 
 function validateAgentId(value) {
@@ -429,10 +664,12 @@ function dateTime(value) {
 }
 
 module.exports = {
+  batteryTransferEvents,
   DomotzApiError,
   getAgent,
   getDeviceStatusCounts,
   getPowerOutlets,
+  getUpsMonitoring,
   listAgents,
   normalisePowerOutlet,
   triggerPowerOutletAction

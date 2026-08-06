@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import type { ClientSettings } from '../clientSettings'
 import {
   loadDomotzStatus,
+  loadDomotzUpsStatus,
   type DomotzStatus,
+  type DomotzUpsDevice,
+  type DomotzUpsStatus,
 } from '../domotz'
 import './IntegrationDashboard.css'
 
@@ -59,6 +62,9 @@ export default function IntegrationDashboard({
     useState<DomotzStatus | null>(null)
   const [domotzError, setDomotzError] = useState<string | null>(null)
   const [isDomotzLoading, setIsDomotzLoading] = useState(false)
+  const [upsStatus, setUpsStatus] = useState<DomotzUpsStatus | null>(null)
+  const [upsError, setUpsError] = useState<string | null>(null)
+  const [isUpsLoading, setIsUpsLoading] = useState(false)
   const [refreshRequest, setRefreshRequest] = useState(0)
 
   useEffect(() => {
@@ -91,6 +97,44 @@ export default function IntegrationDashboard({
       })
       .finally(() => {
         if (active) setIsDomotzLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [clientId, domotzAgentId, domotzConfigured, refreshRequest])
+
+  useEffect(() => {
+    let active = true
+
+    if (!domotzConfigured || !domotzAgentId) {
+      setUpsStatus(null)
+      setUpsError(null)
+      setIsUpsLoading(false)
+      return () => {
+        active = false
+      }
+    }
+
+    setUpsStatus(null)
+    setUpsError(null)
+    setIsUpsLoading(true)
+
+    void loadDomotzUpsStatus(clientId, refreshRequest > 0)
+      .then(status => {
+        if (active) setUpsStatus(status)
+      })
+      .catch(error => {
+        if (active) {
+          setUpsError(
+            error instanceof Error
+              ? error.message
+              : 'Unable to retrieve UPS monitoring',
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setIsUpsLoading(false)
       })
 
     return () => {
@@ -137,10 +181,18 @@ export default function IntegrationDashboard({
         <DomotzMonitoringPanel
           presentation={domotzPresentation}
           status={domotzStatus}
-          isLoading={isDomotzLoading}
+          isLoading={isDomotzLoading || isUpsLoading}
           canRefresh={domotzConfigured && Boolean(domotzAgentId)}
           onRefresh={() => setRefreshRequest(current => current + 1)}
           onConfigure={onConfigureMonitoring}
+        />
+      )}
+
+      {mode !== 'network' && domotzConfigured && Boolean(domotzAgentId) && (
+        <UpsMonitoringPanel
+          status={upsStatus}
+          error={upsError}
+          isLoading={isUpsLoading}
         />
       )}
 
@@ -152,6 +204,198 @@ export default function IntegrationDashboard({
       </footer>
     </section>
   )
+}
+
+function UpsMonitoringPanel({
+  status,
+  error,
+  isLoading,
+}: {
+  status: DomotzUpsStatus | null
+  error: string | null
+  isLoading: boolean
+}) {
+  if (
+    !isLoading &&
+    !error &&
+    (!status || ['no-devices', 'not-linked'].includes(status.state))
+  ) {
+    return null
+  }
+
+  const state: IntegrationState = error
+    ? 'configured'
+    : status?.state === 'attention'
+      ? 'attention'
+      : 'connected'
+  const stateLabel = isLoading && !status
+    ? 'Checking'
+    : error
+      ? 'API unavailable'
+      : status?.state === 'attention'
+        ? 'Attention'
+        : 'All normal'
+
+  return (
+    <article className={`ups-monitoring-card ${state}`}>
+      <header className="ups-monitoring-header">
+        <div className="domotz-monitoring-title">
+          <span
+            className={`integration-system-dot ${state}`}
+            aria-hidden="true"
+          />
+          <div>
+            <small>Domotz UPS monitoring</small>
+            <h4>Power resilience</h4>
+          </div>
+        </div>
+        <span className={`integration-state ${state}`}>{stateLabel}</span>
+      </header>
+
+      {error ? (
+        <div className="domotz-monitoring-empty">
+          <strong>UPS status is temporarily unavailable.</strong>
+          <p>{error}</p>
+        </div>
+      ) : isLoading && !status ? (
+        <div className="domotz-monitoring-empty">
+          <strong>Retrieving Eaton UPS status from Domotz.</strong>
+          <p>Current battery state and recent source changes are being checked.</p>
+        </div>
+      ) : (
+        <div className="ups-device-grid">
+          {status?.devices.map(device => (
+            <UpsDeviceCard
+              key={device.id}
+              device={device}
+              historyDays={status.historyDays ?? 30}
+            />
+          ))}
+        </div>
+      )}
+
+      {!error && status && status.devices.length > 0 && (
+        <footer className="ups-monitoring-footer">
+          <span>
+            Source: Domotz UPS Basic Info · {status.historyDays ?? 30}-day
+            source-change history
+          </span>
+          <span>
+            Battery transfers are evidence of a source change, not proof of a
+            utility outage.
+          </span>
+        </footer>
+      )}
+    </article>
+  )
+}
+
+function UpsDeviceCard({
+  device,
+  historyDays,
+}: {
+  device: DomotzUpsDevice
+  historyDays: number
+}) {
+  const attention = upsNeedsAttention(device)
+
+  return (
+    <section className={`ups-device-card ${attention ? 'attention' : 'connected'}`}>
+      <header>
+        <div>
+          <small>{[device.zone, device.location].filter(Boolean).join(' · ')}</small>
+          <h5>{device.model || 'Eaton UPS'}</h5>
+        </div>
+        <span className={`integration-state ${attention ? 'attention' : 'connected'}`}>
+          {attention ? 'Review' : 'Normal'}
+        </span>
+      </header>
+
+      <dl className="ups-device-metrics">
+        <div>
+          <dt>Power source</dt>
+          <dd>{formatOutputSource(device.outputSource)}</dd>
+        </div>
+        <div>
+          <dt>Battery</dt>
+          <dd>{formatMetric(device.batteryChargePercent, '%')}</dd>
+        </div>
+        <div>
+          <dt>Estimated runtime</dt>
+          <dd>{formatMetric(device.estimatedMinutesRemaining, ' min')}</dd>
+        </div>
+        <div>
+          <dt>UPS alarms</dt>
+          <dd>{device.alarmsPresent ?? 'Unknown'}</dd>
+        </div>
+      </dl>
+
+      <p className="ups-transfer-summary">
+        {describeTransfers(device, historyDays)}
+      </p>
+
+      <footer>
+        <span>{device.name}</span>
+        {device.observedAt && <span>Updated {formatDate(device.observedAt)}</span>}
+      </footer>
+    </section>
+  )
+}
+
+function upsNeedsAttention(device: DomotzUpsDevice) {
+  return (
+    device.status !== 'ONLINE' ||
+    device.outputSource !== 'normal' ||
+    (device.alarmsPresent !== null && device.alarmsPresent > 0) ||
+    !['batterynormal', 'unknown'].includes(device.batteryStatus)
+  )
+}
+
+function describeTransfers(device: DomotzUpsDevice, historyDays: number) {
+  const latest = device.batteryTransfers[0]
+
+  if (device.outputSource === 'battery') {
+    return latest?.startedAt
+      ? `On battery since ${formatDate(latest.startedAt)}.`
+      : 'On battery; the transfer start time is unavailable.'
+  }
+
+  if (!latest) {
+    return `No battery transfers recorded in the last ${historyDays} days.`
+  }
+
+  const duration = latest.durationSeconds === null
+    ? 'duration unavailable'
+    : formatDuration(latest.durationSeconds)
+
+  return `Last battery transfer ${formatDate(latest.startedAt ?? latest.endedAt ?? '')} · ${duration}.`
+}
+
+function formatOutputSource(value: string) {
+  const labels: Record<string, string> = {
+    normal: 'Utility / normal',
+    battery: 'Battery',
+    bypass: 'Bypass',
+    booster: 'Booster',
+    reducer: 'Reducer',
+    none: 'No output',
+    other: 'Other',
+    unknown: 'Unknown',
+  }
+
+  return labels[value] ?? value
+}
+
+function formatMetric(value: number | null, suffix: string) {
+  return value === null ? 'Unknown' : `${value.toLocaleString('en-GB')}${suffix}`
+}
+
+function formatDuration(seconds: number) {
+  if (seconds < 60) return `${seconds} sec`
+  if (seconds < 3600) return `${Math.round(seconds / 60)} min`
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.round((seconds % 3600) / 60)
+  return minutes > 0 ? `${hours} hr ${minutes} min` : `${hours} hr`
 }
 
 function DomotzMonitoringPanel({

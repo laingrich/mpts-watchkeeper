@@ -94,6 +94,19 @@ visible devices are reported separately as discovery context. Detailed
 monitoring, alerts, history and diagnosis remain in Domotz. The same server-side
 integration performs the confirmed GUDE power actions described above.
 
+The overview also shows Eaton UPS operational data already collected by the
+Domotz **UPS Basic Info** SNMP template. Watchkeeper reads current output source,
+battery status, charge, estimated runtime and alarm count, plus the last 30 days
+of output-source changes. It does not connect directly to an Eaton device or
+store separate UPS credentials. The template must remain applied to each UPS in
+Domotz; devices without its `upsOutputSource` variable are not presented as
+monitored UPSs.
+
+An output-source change to battery is described as a **battery transfer**. It is
+useful power-event evidence but does not by itself prove a utility outage,
+because a test or another UPS operating condition can also transfer the load to
+battery. Detailed investigation and any UPS metric alerts remain in Domotz.
+
 Create a Public API key in the Domotz Portal, then configure these server-side
 settings locally and in Azure Static Web Apps:
 
