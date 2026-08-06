@@ -15,6 +15,7 @@ import {
   type RemoteSupportMethod,
   type SiteType,
 } from '../clientSettings'
+import DomotzAgentSelector from './DomotzAgentSelector'
 import './SiteConfiguration.css'
 
 type SiteConfigurationProps = {
@@ -406,18 +407,26 @@ export default function SiteConfiguration({
             <div className="site-config-guidance">
               <strong>Domotz is the operational authority.</strong>
               <p>
-                Watchkeeper will show Collector state, important device status
-                and alert summaries after the API connection is added. Alert
-                rules, history and investigation remain in Domotz.
+                Select the Collector that represents this Jetbuilt client.
+                Watchkeeper will read its current state and device summary;
+                alert rules, history and investigation remain in Domotz.
               </p>
-              <details>
-                <summary>How the Domotz connection will be completed</summary>
-                <p>
-                  A future integration setup will select the Domotz Agent for
-                  this client and store its external identifier. No credentials
-                  or simulated readings are stored by this selector today.
-                </p>
-              </details>
+
+              <DomotzAgentSelector
+                value={settings.integrations.domotz.agentId}
+                onChange={agentId =>
+                  updateSettings(current => ({
+                    ...current,
+                    integrations: {
+                      ...current.integrations,
+                      domotz: {
+                        ...current.integrations.domotz,
+                        agentId,
+                      },
+                    },
+                  }))
+                }
+              />
             </div>
           )}
 

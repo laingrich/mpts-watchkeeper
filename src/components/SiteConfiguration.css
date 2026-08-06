@@ -212,6 +212,57 @@
   font-weight: 750;
 }
 
+.domotz-agent-selector {
+  display: grid;
+  gap: 12px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(96, 165, 250, 0.16);
+}
+
+.domotz-agent-error {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.12);
+  color: #fecaca;
+  font-size: 0.72rem;
+}
+
+.domotz-agent-error button {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.08);
+  color: #fee2e2;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.domotz-agent-empty {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.domotz-portal-link {
+  width: fit-content;
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.domotz-portal-link:hover {
+  color: #dbeafe;
+}
+
 .site-config-source-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

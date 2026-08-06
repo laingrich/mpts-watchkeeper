@@ -32,10 +32,176 @@
   font-weight: 800;
 }
 
-.integration-system-list {
+.domotz-monitoring-card {
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent 38%),
+    rgba(10, 18, 34, 0.66);
+}
+
+.domotz-monitoring-card.attention {
+  border-color: rgba(239, 68, 68, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.08), transparent 38%),
+    rgba(10, 18, 34, 0.66);
+}
+
+.domotz-monitoring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.domotz-monitoring-title {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.domotz-monitoring-title > div {
+  display: grid;
+  gap: 3px;
+}
+
+.domotz-monitoring-title small {
+  color: #60a5fa;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.domotz-monitoring-title h4 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.domotz-monitoring-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.domotz-monitoring-actions a,
+.domotz-refresh-button,
+.domotz-monitoring-empty button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 9px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #bfdbfe;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.domotz-refresh-button,
+.domotz-monitoring-empty button {
+  cursor: pointer;
+}
+
+.domotz-refresh-button:hover:not(:disabled),
+.domotz-monitoring-empty button:hover,
+.domotz-monitoring-actions a:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(37, 99, 235, 0.16);
+  color: #eff6ff;
+}
+
+.domotz-refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.domotz-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.domotz-metric {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  background: #0f192b;
+}
+
+.domotz-metric span {
+  color: #64748b;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+}
+
+.domotz-metric strong {
+  color: #f8fafc;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.domotz-metric.connected strong {
+  color: #86efac;
+}
+
+.domotz-metric.attention strong {
+  color: #fca5a5;
+}
+
+.domotz-metric.configured strong {
+  color: #fde68a;
+}
+
+.domotz-monitoring-context,
+.domotz-monitoring-empty {
+  padding: 18px;
+}
+
+.domotz-monitoring-context {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.domotz-monitoring-context strong,
+.domotz-monitoring-empty strong {
+  color: #e2e8f0;
+  font-size: 0.78rem;
+}
+
+.domotz-monitoring-context p,
+.domotz-monitoring-empty p {
+  margin: 5px 0 0;
+  color: #94a3b8;
+  font-size: 0.73rem;
+  line-height: 1.5;
+}
+
+.domotz-monitoring-empty button {
+  margin-top: 14px;
+}
+
+.domotz-monitoring-timestamps {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.65rem;
+  text-align: right;
 }
 
 .integration-system-row {
@@ -44,11 +210,9 @@
   gap: 16px;
   align-items: center;
   padding: 17px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
   background: rgba(10, 18, 34, 0.58);
-}
-
-.integration-system-row + .integration-system-row {
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .integration-system-identity {
@@ -92,6 +256,11 @@
   box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.12);
 }
 
+.integration-system-dot.attention {
+  background: #ef4444;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12);
+}
+
 .integration-system-dot.not-configured {
   background: #64748b;
   box-shadow: 0 0 0 5px rgba(100, 116, 139, 0.13);
@@ -121,6 +290,11 @@
 .integration-state.configured {
   background: rgba(245, 158, 11, 0.12);
   color: #fde68a;
+}
+
+.integration-state.attention {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
 }
 
 .integration-state.not-configured {
@@ -161,6 +335,12 @@
   font-size: 0.72rem;
 }
 
+@media (max-width: 900px) {
+  .domotz-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 800px) {
   .integration-system-row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -170,11 +350,44 @@
   .integration-guidance {
     grid-column: 1 / -1;
   }
+
+  .domotz-monitoring-header,
+  .domotz-monitoring-context {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .domotz-monitoring-timestamps {
+    text-align: left;
+  }
 }
 
 @media (max-width: 650px) {
   .integration-summary-header {
     flex-direction: column;
+  }
+
+  .domotz-monitoring-actions {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    width: 100%;
+  }
+
+  .domotz-monitoring-actions .integration-state {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .domotz-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .domotz-metric {
+    padding: 15px;
+  }
+
+  .domotz-metric strong {
+    font-size: 1.4rem;
   }
 
   .integration-system-row {
