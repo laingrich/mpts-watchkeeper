@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  helperRequest,
-  requestGudeAuthorisation,
+  loadGudeStatus,
+  operateGudePort,
   type GudeAction,
-  type GudePort,
   type GudeStatus,
-} from './GudePowerControl'
+} from '../gudePower'
 import './GudePowerControl.css'
 import './GudeDevicePowerControl.css'
 
@@ -30,20 +29,12 @@ export default function GudeDevicePowerControl({
 
   const refresh = useCallback(async () => {
     try {
-      const token = await requestGudeAuthorisation(
-        clientId,
-        gudeDeviceId,
-        'gude:operate',
-      )
-      setStatus(await helperRequest('/gude/status', {
-        clientId,
-        deviceId: gudeDeviceId,
-      }, token))
+      setStatus(await loadGudeStatus(clientId, gudeDeviceId))
       setError('')
     } catch (requestError) {
       setError(requestError instanceof Error
         ? requestError.message
-        : 'Unable to read the GUDE power outlet')
+        : 'Unable to read the GUDE power outlet through Domotz')
     }
   }, [clientId, gudeDeviceId])
 
@@ -66,17 +57,9 @@ export default function GudeDevicePowerControl({
     setBusy(true)
     setError('')
     try {
-      const token = await requestGudeAuthorisation(
-        clientId,
-        gudeDeviceId,
-        'gude:operate',
-      )
-      setStatus(await helperRequest('/gude/action', {
-        clientId,
-        deviceId: gudeDeviceId,
-        port: port.number,
-        action,
-      }, token))
+      await operateGudePort(clientId, gudeDeviceId, port.number, action)
+      await delay(action === 'reset' ? 2_000 : 750)
+      await refresh()
     } catch (requestError) {
       setError(requestError instanceof Error
         ? requestError.message
@@ -87,12 +70,12 @@ export default function GudeDevicePowerControl({
   }
 
   const switchAction = port?.state === 'on' ? 'off' : 'on'
-  const switchDisabled = busy || !port || port.protected || port.resetting || port.state === 'unknown'
+  const switchDisabled = busy || !port || !port.canWrite || port.state === 'unknown'
 
   return (
     <div className="gude-device-power">
       <div className="gude-device-power-copy">
-        <p className="eyebrow">POWER VIA GUDE</p>
+        <p className="eyebrow">POWER VIA DOMOTZ</p>
         <strong>{port?.name || `${gudeDeviceTitle} port ${portNumber}`}</strong>
         <span>{gudeDeviceTitle} · port {portNumber}</span>
       </div>
@@ -112,7 +95,7 @@ export default function GudeDevicePowerControl({
         <button
           type="button"
           className="gude-port-reset"
-          disabled={busy || !port || port.protected || port.resetting || port.state !== 'on'}
+          disabled={busy || !port || !port.canWrite || port.state !== 'on'}
           onClick={() => void operate('reset')}
         >
           Reset
@@ -122,4 +105,8 @@ export default function GudeDevicePowerControl({
       {error && <p className="gude-control-error" role="alert">{error}</p>}
     </div>
   )
+}
+
+function delay(milliseconds: number) {
+  return new Promise(resolve => window.setTimeout(resolve, milliseconds))
 }

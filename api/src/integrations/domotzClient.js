@@ -1,6 +1,7 @@
 const DOMOTZ_REQUEST_TIMEOUT_MS = 10000
 const DOMOTZ_MAX_AGENT_PAGES = 10
 const DOMOTZ_AGENT_PAGE_SIZE = 100
+const POWER_ACTIONS = new Set(['on', 'off', 'cycle'])
 
 class DomotzApiError extends Error {
   constructor(message, code, statusCode = 502) {
@@ -119,14 +120,69 @@ async function getDeviceStatusCounts(agentId) {
   return counts
 }
 
-async function domotzRequest(path) {
-  const { apiKey, baseUrl } = readConfiguration()
+async function getPowerOutlets(agentId, deviceId, options = {}) {
+  const value = await domotzRequest(
+    `agent/${requiredNumericId(agentId, 'Collector')}/device/${requiredNumericId(deviceId, 'device')}/power-outlet`,
+    { ...options, responseErrorFactory: powerResponseError }
+  )
+
+  if (!Array.isArray(value)) {
+    throw new DomotzApiError(
+      'Domotz returned an invalid outlet list',
+      'DOMOTZ_INVALID_RESPONSE'
+    )
+  }
+
+  const outlets = value
+    .map(normalisePowerOutlet)
+    .filter(outlet => outlet !== null)
+    .sort((left, right) => left.number - right.number)
+
+  if (outlets.length === 0 && value.length > 0) {
+    throw new DomotzApiError(
+      'Domotz returned outlets with unsupported identifiers',
+      'DOMOTZ_INVALID_RESPONSE'
+    )
+  }
+
+  return outlets
+}
+
+async function triggerPowerOutletAction(
+  agentId,
+  deviceId,
+  outletId,
+  action,
+  options = {}
+) {
+  const selectedAction = String(action || '').trim().toLowerCase()
+  if (!POWER_ACTIONS.has(selectedAction)) {
+    throw new DomotzApiError(
+      'Unsupported power action',
+      'DOMOTZ_INVALID_ACTION',
+      400
+    )
+  }
+
+  await domotzRequest(
+    `agent/${requiredNumericId(agentId, 'Collector')}/device/${requiredNumericId(deviceId, 'device')}/power-outlet/${requiredNumericId(outletId, 'outlet')}/action/${selectedAction}`,
+    {
+      ...options,
+      method: 'POST',
+      responseErrorFactory: powerResponseError
+    }
+  )
+}
+
+async function domotzRequest(path, options = {}) {
+  const { apiKey, baseUrl } = readConfiguration(options.configuration)
+  const fetchImpl = options.fetchImpl || fetch
   const url = new URL(path, `${baseUrl}/`)
   let response
 
   try {
-    response = await fetch(url, {
-      method: 'GET',
+    response = await fetchImpl(url, {
+      method: options.method || 'GET',
       headers: {
         Accept: 'application/json',
         'X-Api-Key': apiKey
@@ -146,8 +202,10 @@ async function domotzRequest(path) {
   }
 
   if (!response.ok) {
-    throw responseError(response.status)
+    throw (options.responseErrorFactory || responseError)(response.status)
   }
+
+  if (response.status === 202 || response.status === 204) return null
 
   try {
     return await response.json()
@@ -159,10 +217,12 @@ async function domotzRequest(path) {
   }
 }
 
-function readConfiguration() {
-  const apiKey = String(process.env.DOMOTZ_API_KEY || '').trim()
+function readConfiguration(configuration) {
+  const apiKey = String(
+    configuration?.apiKey ?? process.env.DOMOTZ_API_KEY ?? ''
+  ).trim()
   const configuredBaseUrl = String(
-    process.env.DOMOTZ_API_BASE_URL || ''
+    configuration?.baseUrl ?? process.env.DOMOTZ_API_BASE_URL ?? ''
   ).trim()
 
   if (!apiKey || !configuredBaseUrl) {
@@ -240,6 +300,25 @@ function responseError(status) {
   )
 }
 
+function powerResponseError(status) {
+  if (status === 401 || status === 403) {
+    return new DomotzApiError(
+      'Domotz rejected the configured API key or power action',
+      'DOMOTZ_AUTHENTICATION_FAILED'
+    )
+  }
+
+  if (status === 404) {
+    return new DomotzApiError(
+      'The linked Domotz outlet was not found',
+      'DOMOTZ_OUTLET_NOT_FOUND',
+      404
+    )
+  }
+
+  return responseError(status)
+}
+
 function normaliseAgentSummary(value) {
   if (!value || typeof value !== 'object') {
     return null
@@ -275,6 +354,21 @@ function normaliseAgentDetail(value) {
   }
 }
 
+function normalisePowerOutlet(value) {
+  if (!value || typeof value !== 'object') return null
+  const id = String(value.id ?? '').trim()
+  if (!/^\d{1,4}$/.test(id)) return null
+
+  const power = String(value.power || '').trim().toUpperCase()
+  return {
+    id,
+    number: Number(id),
+    name: cleanText(value.name, 200) || `Power Port ${id}`,
+    state: power === 'ON' ? 'on' : power === 'OFF' ? 'off' : 'unknown',
+    canWrite: value.can_write === true
+  }
+}
+
 function validateAgentId(value) {
   const id = String(value || '').trim()
 
@@ -292,6 +386,18 @@ function validateAgentId(value) {
 function numericId(value) {
   const id = String(value ?? '').trim()
   return /^\d{1,20}$/.test(id) ? id : ''
+}
+
+function requiredNumericId(value, label) {
+  const id = String(value ?? '').trim()
+  if (!/^\d{1,20}$/.test(id)) {
+    throw new DomotzApiError(
+      `Invalid Domotz ${label} ID`,
+      'DOMOTZ_INVALID_ID',
+      400
+    )
+  }
+  return id
 }
 
 function statusValue(value) {
@@ -326,5 +432,8 @@ module.exports = {
   DomotzApiError,
   getAgent,
   getDeviceStatusCounts,
-  listAgents
+  getPowerOutlets,
+  listAgents,
+  normalisePowerOutlet,
+  triggerPowerOutletAction
 }

@@ -456,7 +456,6 @@ export default function App() {
             siteName={client.name}
             remoteSupport={clientSettings.remoteSupport}
             canEditLauncher={canEditEngineeringData}
-            canEditPowerPortNames={canEditEngineeringData}
             onConfigureRemoteSupport={
               isAdmin
                 ? () => changeTab('Site configuration')
