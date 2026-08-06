@@ -85,7 +85,6 @@ type DeviceLauncherProps = {
   siteName: string
   remoteSupport: ClientSettings['remoteSupport']
   canEditLauncher: boolean
-  canEditPowerPortNames: boolean
   onConfigureRemoteSupport?: () => void
 }
 
@@ -376,7 +375,6 @@ export default function DeviceLauncher({
   siteName: clientName,
   remoteSupport,
   canEditLauncher,
-  canEditPowerPortNames,
   onConfigureRemoteSupport,
 }: DeviceLauncherProps) {
   const [config, setConfig] = useState<LauncherConfig | null>(null)
@@ -1543,7 +1541,6 @@ export default function DeviceLauncher({
                                 deviceId={device.id}
                                 deviceTitle={device.title}
                                 configuredModel={device.powerControl.model}
-                                canEditNames={canEditPowerPortNames}
                               />
                             ) : device.details ? (
                               <DetailTable details={device.details} />

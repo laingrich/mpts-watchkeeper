@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  helperRequest,
-  requestGudeAuthorisation,
+  loadGudeStatus,
   type GudePort,
-} from './GudePowerControl'
+} from '../gudePower'
 import './GudeOutletAssignment.css'
 
 type GudeSource = {
@@ -54,15 +53,7 @@ export default function GudeOutletAssignment({
       setError('')
 
       const results = await Promise.allSettled(sources.map(async source => {
-        const token = await requestGudeAuthorisation(
-          clientId,
-          source.deviceId,
-          'gude:operate',
-        )
-        const status = await helperRequest('/gude/status', {
-          clientId,
-          deviceId: source.deviceId,
-        }, token)
+        const status = await loadGudeStatus(clientId, source.deviceId)
         return status.ports.map(port => ({ source, port }))
       }))
 

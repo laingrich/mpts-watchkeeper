@@ -26,23 +26,25 @@ in `api/local.settings.json` to a development-only container name.
 
 ### GUDE IPPDU control
 
-Watchkeeper can show live GUDE power-port state and provide confirmed **On**,
-**Off** and **Reset** actions. Watchkeeper administrators and engineers can also
-edit a port name; the helper writes that name to the GUDE and reads it back
-before reporting success. A `watchkeeper_operator` role is intended for a
-homeowner or crew member: it can operate power for explicitly assigned clients,
-but cannot rename ports or edit engineering information. The production web app
-does not receive GUDE
-credentials and cannot call private site addresses directly. A loopback-only
-helper on the engineer's computer or onsite Watchkeeper PC performs the local
-device requests.
+Watchkeeper shows live GUDE power-port state and provides confirmed **On**,
+**Off** and **Reset** actions through the Domotz Public API. The browser calls
+Watchkeeper's authenticated API; only the server holds the Domotz API key.
+Switching therefore works from an authorised browser without the retired GUDE
+loopback helper or direct access to the site's private network.
 
-For managed GUDE IPPDUs, the GUDE device is the single source of truth for port
-names and switching state. Watchkeeper does not maintain or apply a separate
-outlet-name map. Names are limited to 15 characters by the GUDE. A change made
-on either the GUDE or through Watchkeeper is shown on the next status refresh.
-Port state refreshes automatically every 15 seconds and immediately after each
-switching command.
+The GUDE-discovered outlet name and the Domotz-reported switching state are
+displayed as read-only operational data. Watchkeeper does not maintain a second
+outlet-name map and does not rename outlets. Rename an outlet in the GUDE browser
+interface when required; Watchkeeper displays the updated name on a subsequent
+refresh. Port state refreshes automatically every 15 seconds and immediately
+after each switching command.
+
+All three Watchkeeper roles can operate power for clients they are authorised
+to access. Administrators and engineers can access managed clients. An operator
+can operate power only for the clients explicitly assigned to that account by
+`WATCHKEEPER_OPERATOR_CLIENT_ACCESS`. Every action requires a confirmation in
+the UI and the server records the actor, client, device, outlet and outcome in
+the Watchkeeper application log. There is no separate protected-port list.
 
 A normal Watchkeeper device can carry a `powerOutlet` relationship containing
 only a GUDE Watchkeeper device ID and port number. Its device card then shows a
@@ -63,25 +65,9 @@ power controls but cannot create or change these engineering relationships; an
 unmapped Power button is disabled for them. Assignment updates Watchkeeper only
 and never changes a GUDE outlet name or switching state.
 
-Local setup:
-
-1. Run `npm install --prefix helper` once to install the helper's SNMP library.
-2. Copy `helper/config.example.json` to `helper/local.config.json`.
-3. In the local file, add the selected Watchkeeper client's Jetbuilt ID, each
-   Watchkeeper device ID, GUDE address, verified model, web username/password,
-   SNMP write community, port count and any ports that must be protected from
-   remote operation.
-4. Run `npm --prefix helper run generate-keys` to generate one Ed25519 key
-   pair. Store the displayed `WATCHKEEPER_HELPER_SIGNING_PRIVATE_KEY` value in the
-   Watchkeeper API setting `WATCHKEEPER_HELPER_SIGNING_PRIVATE_KEY`, and put the
-   displayed `authorisationPublicKey` value in `authorisationPublicKey` in
-   `helper/local.config.json`. Do not put the private key in the helper file.
-5. Run `npm run dev:helper` from the repository root.
-6. Start Watchkeeper normally and open a GUDE device's **Power control** panel.
-
-For local full-stack development, add
-`WATCHKEEPER_HELPER_SIGNING_PRIVATE_KEY` to `api/local.settings.json` under
-`Values`. Also add `WATCHKEEPER_OPERATOR_CLIENT_ACCESS` as a JSON object mapping
+Configure `WATCHKEEPER_OPERATOR_CLIENT_ACCESS` in `api/local.settings.json` for
+local full-stack development and as an Azure Static Web Apps application
+setting. It is a JSON object mapping
 each operator's lower-case Entra user ID or email address to the Jetbuilt client
 IDs they may access, for example:
 
@@ -90,42 +76,23 @@ IDs they may access, for example:
 ```
 
 Assign that person the `watchkeeper_operator` Static Web Apps role. An operator
-with no valid mapping sees no clients and cannot obtain a helper authorisation.
-For the deployed application, add both settings as Azure Static Web Apps
-application settings. Local and cloud signing values must use the same key only
-when both environments are intended to authorise the same helper.
+with no valid mapping sees no clients and cannot use the power API.
 
-The GUDE helper binds only to `127.0.0.1:47832`, permits explicitly configured
-Watchkeeper browser origins, maps device IDs to locally approved addresses,
-applies a per-port action cooldown and writes successful and failed action
-attempts to the local audit log. Every status read and power command requires a
-short-lived, server-signed authorisation scoped to the user, client and device.
-Port-name authorisations are issued only to `watchkeeper_admin` and
-`watchkeeper_engineer`; `watchkeeper_operator` authorisations are limited by the
-server-side client mapping. The helper changes only the model-specific SNMP
-port-name field, then reads the live GUDE status to confirm the result; the
-browser cannot grant itself this access.
-It deliberately uses a different port from
-the existing Watchkeeper local agent on `127.0.0.1:47831`, so VPN launching and
-device-reachability checks continue to work alongside GUDE control.
-`helper/local.config.json` and audit logs are ignored by Git. Never place GUDE
-credentials in the device launcher, frontend source, Azure settings or a
-`VITE_` variable.
+The server-side Watchkeeper-to-Domotz device references are in
+`api/src/data/domotzPowerDevices.json`. They contain only stable external IDs and
+verified models, not credentials. The Collector ID comes from the client's
+existing Domotz integration setting. Changing an API setting requires restarting
+the local API or restarting/redeploying the Azure application. The separate
+onsite agent on `127.0.0.1:47831` remains available for VPN launching and local
+device-reachability checks; GUDE power control does not depend on it.
 
-Changing `helper/local.config.json` requires restarting the helper. Changing
-the local API setting requires restarting the local API; changing the deployed
-setting requires a new application configuration/deployment to take effect.
-This implementation controls
-devices only from a computer that is running the helper and can reach the site
-directly or through its approved VPN/Teleport connection; it is not a cloud
-relay for mobile operation.
+### Domotz integration
 
-### Domotz read-only integration
-
-Watchkeeper can associate a Jetbuilt client with a Domotz Collector and show a
+Watchkeeper associates a Jetbuilt client with a Domotz Collector and shows a
 cached, read-only Collector and Important Devices availability summary. Other
 visible devices are reported separately as discovery context. Detailed
-monitoring, alerts, history and diagnosis remain in Domotz.
+monitoring, alerts, history and diagnosis remain in Domotz. The same server-side
+integration performs the confirmed GUDE power actions described above.
 
 Create a Public API key in the Domotz Portal, then configure these server-side
 settings locally and in Azure Static Web Apps:

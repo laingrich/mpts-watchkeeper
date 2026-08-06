@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const {
   canAccessClient,
   filterAccessibleClients
-} = require('../../api/src/auth/clientAccess')
+} = require('../src/auth/clientAccess')
 
 const operator = {
   userId: 'operator-id',

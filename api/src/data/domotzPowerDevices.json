@@ -1,0 +1,24 @@
+{
+  "463549": {
+    "dev-gude-av1": {
+      "deviceId": "18306716",
+      "model": "Expert Power Control 8041-1"
+    },
+    "dev-gude-av2": {
+      "deviceId": "18355870",
+      "model": "Expert Power Control 8041-1"
+    },
+    "dev-gude-panic": {
+      "deviceId": "18643042",
+      "model": "Expert Power Control 8031-1"
+    },
+    "dev-gude-garage": {
+      "deviceId": "18306717",
+      "model": "Expert Power Control 8031-1"
+    },
+    "dev-gude-it": {
+      "deviceId": "18306715",
+      "model": "Expert Power Control 8041-1"
+    }
+  }
+}
